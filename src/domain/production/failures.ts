@@ -1,5 +1,6 @@
 import type { GameSnapshot, ZoneState } from '@/core/types';
 import { clamp } from '@/core/math';
+import { staffPressureMult } from '@/domain/org/staffWork';
 import { machineFlow, pressFlow, zoneProducing } from './flow';
 import { addMoney } from './economy';
 
@@ -82,10 +83,11 @@ export function tickZoneValues(
   cb: FailCallbacks,
 ): void {
   if (!z.on) return;
+  const staff = staffPressureMult(state, z.id);
   switch (z.kind) {
     case 'machine':
       if (!z.failed && zoneProducing(state, z)) {
-        z.value = clamp(z.value + 0.026 * d * dt, 0, 1);
+        z.value = clamp(z.value + 0.018 * d * dt * staff, 0, 1);
         if (z.value >= 1) failZone(state, z, cb);
       }
       if (!z.failed && z.value >= 0.88) {
@@ -105,7 +107,7 @@ export function tickZoneValues(
       break;
     case 'press':
       if (!z.failed && pressFlow(state)) {
-        z.value = clamp(z.value + 0.018 * d * dt, 0, 1);
+        z.value = clamp(z.value + 0.012 * d * dt * staff, 0, 1);
         if (z.value >= 1) failZone(state, z, cb);
       }
       if (z.failed) {
@@ -118,7 +120,7 @@ export function tickZoneValues(
       break;
     case 'hopper':
       if (machineFlow(state)) {
-        z.value = clamp(z.value + 0.02 * d * dt, 0, 1);
+        z.value = clamp(z.value + 0.014 * d * dt * staff, 0, 1);
       }
       if (z.value >= 1 && !z.failed) {
         z.failed = true;
@@ -128,7 +130,11 @@ export function tickZoneValues(
       break;
     case 'worker':
       if (!z.failed) {
-        z.value = clamp(z.value + 0.024 * d * (state.powerOut ? 0.4 : 1) * dt, 0, 1);
+        z.value = clamp(
+          z.value + 0.016 * d * (state.powerOut ? 0.4 : 1) * dt * staff,
+          0,
+          1,
+        );
         if (z.value >= 1) failZone(state, z, cb);
       } else {
         z.spawnT -= dt;
@@ -140,7 +146,8 @@ export function tickZoneValues(
       break;
     case 'fridge':
       z.value = clamp(
-        z.value + 0.02 * d * (0.6 + rng.range(0, 0.8)) * (state.powerOut ? 1.7 : 1) * dt,
+        z.value +
+          0.013 * d * (0.6 + rng.range(0, 0.8)) * (state.powerOut ? 1.7 : 1) * dt * staff,
         0,
         1,
       );
@@ -155,7 +162,7 @@ export function tickZoneValues(
         const producers = state.zones.filter(
           (zz) => zz.on && zoneProducing(state, zz) && zz.kind !== 'fridge',
         ).length;
-        z.value = clamp(z.value + (0.008 + 0.007 * producers) * d * dt, 0, 1);
+        z.value = clamp(z.value + (0.0055 + 0.005 * producers) * d * dt * staff, 0, 1);
         if (z.value >= 1 && !z.failed) failZone(state, z, cb);
       }
       break;

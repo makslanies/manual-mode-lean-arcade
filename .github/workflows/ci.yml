@@ -27,13 +27,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck and build
-        run: |
-          npm run typecheck
-          npm run build
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build production bundle
+        run: npm run build
         env:
           VITE_BASE_URL: /
           VITE_ENABLE_DEMO_HOOKS: "false"
+
+      - name: Verify dist output
+        run: |
+          test -f dist/index.html
+          test -n "$(find dist/assets -name '*.js' -print -quit)"
+          test -n "$(find dist/assets -name '*.css' -print -quit)"
 
       - name: Run unit tests
         run: npm test
@@ -61,7 +68,9 @@ jobs:
           docker run -d --name mm-smoke -p 8080:8080 manual-mode-lean-arcade:ci
           for i in $(seq 1 30); do
             if wget -qO- http://127.0.0.1:8080/healthz | grep -q ok; then
-              wget -qO /dev/null http://127.0.0.1:8080/
+              html=$(wget -qO- http://127.0.0.1:8080/)
+              js=$(echo "$html" | grep -o '/assets/[^"]*\.js' | head -1)
+              wget -qO /dev/null "http://127.0.0.1:8080${js}"
               exit 0
             fi
             sleep 1

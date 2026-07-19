@@ -1,5 +1,6 @@
 import type { GameSnapshot } from '@/core/types';
 import { SeedRng } from '@/core/Seed';
+import { DIRECTOR_SPEED_COMP, PLAY_SPEED } from '@/core/constants';
 import {
   actLength,
   difficulty,
@@ -14,6 +15,8 @@ import { updateTrucks, type TruckCallbacks } from './production/trucks';
 import { updateRulesEngine } from './lean/rulesEngine';
 import { updateDirector, keyMoveDirector } from './director';
 import { unlockZonesAct1, prepareSupply, prepareRules } from './phases';
+import { tickOrgEconomy } from './economy/OrgTick';
+import { tickStaffWork } from './org/staffWork';
 import {
   addFloat,
   hintOnce,
@@ -134,6 +137,14 @@ export function simulateStep(state: GameSnapshot, dt: number, hooks: SimHooks): 
     }
   }
 
+  tickStaffWork(state, dt, (zoneId, txt) => {
+    const z = state.zoneMap[zoneId];
+    if (!z) return;
+    const s = hooks.screenPos(z.gx, z.gy);
+    addFloat(state, s.x, s.y - 78 * hooks.scale, txt, '#39d98a', 14);
+    hooks.audio.prevent();
+  });
+
   updateTrucks(state, dt, truckCb);
   updateRulesEngine(state, dt, truckCb, {
     onAuto: () => hooks.audio.auto(),
@@ -155,11 +166,13 @@ export function simulateStep(state: GameSnapshot, dt: number, hooks: SimHooks): 
   state.stock = clamp(state.stock + mk * dt, 0, 99);
 
   tickEconomy(state, dt);
+  tickOrgEconomy(state, dt);
 
   tickCoinParticles(state, dt, rng, hooks.screenPos, hooks.scale, () => hooks.audio.coin());
   tickPhoneAlarm(state, dt, () => hooks.audio.phone());
 
-  updateDirector(state, dt, truckCb, {
+  const dirDt = dt * DIRECTOR_SPEED_COMP;
+  updateDirector(state, dirDt, truckCb, {
     onFloat: (txt, color, size) => {
       const z = state.director.fixing?.zone;
       if (!z) return;
@@ -206,6 +219,7 @@ export function simulateStep(state: GameSnapshot, dt: number, hooks: SimHooks): 
 
 export function simulateGameplay(state: GameSnapshot, dt: number, hooks: SimHooks): void {
   if (!isGameplayMode(state.mode)) return;
-  keyMoveDirector(state, hooks.keys, dt);
-  simulateStep(state, dt, hooks);
+  const slowDt = dt * PLAY_SPEED;
+  keyMoveDirector(state, hooks.keys, slowDt * DIRECTOR_SPEED_COMP);
+  simulateStep(state, slowDt, hooks);
 }

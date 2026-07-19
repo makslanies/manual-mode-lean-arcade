@@ -130,6 +130,8 @@ export interface QuipCurrent extends Quip {
   t: number;
 }
 
+export type { OrgState, GrowthState, GameEvent } from '@/domain/org/types';
+
 export interface GameSnapshot {
   mode: GameMode;
   gameT: number;
@@ -169,6 +171,9 @@ export interface GameSnapshot {
   selRules: Set<string>;
   seed: number;
   commandJournal: string[];
+  org: import('@/domain/org/types').OrgState;
+  growth: import('@/domain/org/types').GrowthState;
+  events: import('@/domain/org/types').GameEvent[];
 }
 
 export interface RenderCamera {

@@ -13,12 +13,12 @@ describe('phases — happy path', () => {
   it('unlocks zones during act 1 at scheduled times', () => {
     const s = gameplayState('play');
     const unlocked: string[] = [];
-    s.phaseT = 15;
+    s.phaseT = 20;
     unlockZonesAct1(s, { onUnlock: (name) => unlocked.push(name) });
     expect(s.zoneMap.hopper!.on).toBe(true);
     expect(unlocked).toContain('БУНКЕР СЫРЬЯ');
 
-    s.phaseT = 30;
+    s.phaseT = 40;
     unlockZonesAct1(s, { onUnlock: (name) => unlocked.push(name) });
     expect(s.zoneMap.dock!.on).toBe(true);
   });
@@ -91,8 +91,8 @@ describe('phases — boundary', () => {
 
   it('sets dock truck deadlines on first dock unlock', () => {
     const s = gameplayState('play');
-    s.phaseT = 30;
-    s.gameT = 30;
+    s.phaseT = 40;
+    s.gameT = 40;
     unlockZonesAct1(s, { onUnlock: () => {} });
     expect(s.trucks[0]!.deadline).toBeGreaterThan(s.gameT);
     expect(s.trucks[1]!.deadline).toBeGreaterThan(s.trucks[0]!.deadline);

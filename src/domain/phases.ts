@@ -8,6 +8,7 @@ import {
   TRIP_WINDOW,
 } from '@/core/constants';
 import { actLength, nextModeAfterPhase } from '@/core/FSM';
+import { unlockGrowth } from './org/OrgController';
 
 export function unlockZonesAct1(state: GameSnapshot, cb: { onUnlock: (name: string) => void }): void {
   if (state.mode !== 'play') return;
@@ -28,11 +29,24 @@ export function unlockZonesAct1(state: GameSnapshot, cb: { onUnlock: (name: stri
 }
 
 export function prepareSupply(state: GameSnapshot): void {
+  // Early unlock so the shop HUD appears after Act 1 (reinvest between acts).
+  unlockGrowth(state);
   state.mode = 'supply';
   state.supplyLeft = SUPPLY_LEN;
   state.director.fixing = null;
   state.director.targetZone = null;
   state.selSensors.clear();
+}
+
+/** Enter end-of-shift screen; unlock shop and auto-open on first unlock (§18). */
+export function enterEnd(state: GameSnapshot): void {
+  const firstUnlock = !state.growth.unlocked;
+  unlockGrowth(state);
+  state.mode = 'end';
+  if (firstUnlock) {
+    state.growth.ui.shopOpen = true;
+    state.growth.ui.panel = null;
+  }
 }
 
 export function mountSensors(state: GameSnapshot): void {
@@ -98,7 +112,7 @@ export function tickPhaseTimer(state: GameSnapshot): void {
     const next = nextModeAfterPhase(state.mode);
     if (next === 'supply') prepareSupply(state);
     else if (next === 'rules') prepareRules(state);
-    else if (next === 'end') state.mode = 'end';
+    else if (next === 'end') enterEnd(state);
   }
 }
 

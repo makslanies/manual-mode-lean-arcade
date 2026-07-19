@@ -8,7 +8,11 @@ import { AudioEngine } from '@/audio/AudioEngine';
 import { InputManager } from '@/core/Input';
 import { GameRenderer } from '@/render/GameRenderer';
 import { worldToScreen } from '@/render/iso';
+import { hitShopIcon } from '@/render/drawHUD';
 import { saveRunResult } from '@/persistence/db';
+import { saveGrowthState, loadGrowthState } from '@/persistence/orgDb';
+import { purchaseItem } from '@/domain/shop/ShopController';
+import { assignEmployee, unlockGrowth } from '@/domain/org/OrgController';
 import { installRR } from '@/__RR';
 
 export class GameController {
@@ -28,6 +32,7 @@ export class GameController {
   constructor(seed?: number) {
     this.state = createInitialState(seed);
     this.input.onMute = () => this.audio.toggleMute();
+    void loadGrowthState(this.state).then(() => this.emit());
   }
 
   bindCanvas(canvas: HTMLCanvasElement, onChange: () => void): () => void {
@@ -125,12 +130,20 @@ export class GameController {
   }
 
   private handlePointer(e: PointerEvent): void {
-    const mode = this.state.mode;
-    if (mode !== 'play' && mode !== 'play2' && mode !== 'play3') return;
-    this.audio.init();
+    if (this.state.growth.ui.shopOpen) return;
     const cam = this.renderer!.getCamera();
     const sx = e.clientX;
     const sy = e.clientY;
+    if (
+      this.state.growth.unlocked &&
+      hitShopIcon(cam.w, sx, sy)
+    ) {
+      this.openShop();
+      return;
+    }
+    const mode = this.state.mode;
+    if (mode !== 'play' && mode !== 'play2' && mode !== 'play3') return;
+    this.audio.init();
     let picked = null;
     let best = 1e9;
     for (const z of this.state.zones) {
@@ -175,15 +188,22 @@ export class GameController {
     this.last = now;
     const mode = this.state.mode;
 
-    if (mode === 'title' || mode === 'end') {
+    if (mode === 'title') {
       if (this.idleFrames++ <= 4) this.renderer?.render(this.state, dtReal);
+      return;
+    }
+
+    // Keep top HUD (money + shop bag) live under the hud-gap overlays.
+    if (mode === 'end') {
+      this.renderer?.render(this.state, dtReal);
+      this.emit();
       return;
     }
 
     if (mode === 'supply') {
       this.state.supplyLeft -= dtReal;
       if (this.state.supplyLeft <= 0) this.mountSelected();
-      if (this.idleFrames++ <= 4) this.renderer?.render(this.state, dtReal);
+      this.renderer?.render(this.state, dtReal);
       this.emit();
       return;
     }
@@ -191,7 +211,7 @@ export class GameController {
     if (mode === 'rules') {
       this.state.rulesLeft -= dtReal;
       if (this.state.rulesLeft <= 0) this.wireSelected();
-      if (this.idleFrames++ <= 4) this.renderer?.render(this.state, dtReal);
+      this.renderer?.render(this.state, dtReal);
       this.emit();
       return;
     }
@@ -213,11 +233,62 @@ export class GameController {
       audio: this.audio,
     });
 
-    if (mode !== this.state.mode && this.state.mode === 'end') {
-      void saveRunResult(this.state);
+    if (mode !== this.state.mode) {
+      if (this.state.mode === 'supply' && this.state.growth.unlocked) {
+        this.showHint('Магазин открыт — синяя иконка сумки в поле кассы');
+      }
+      if (this.state.mode === 'end') {
+        void saveRunResult(this.state);
+        void saveGrowthState(this.state);
+      }
     }
 
     this.renderer?.render(this.state, dtReal);
+    this.emit();
+  }
+
+  /** Demo / UI helper: unlock growth layer and refresh React. */
+  unlockShop(): void {
+    unlockGrowth(this.state);
+    void saveGrowthState(this.state);
+    this.emit();
+  }
+
+  openShop(): void {
+    if (!this.state.growth.unlocked) {
+      this.unlockShop();
+    }
+    this.state.growth.ui.shopOpen = true;
+    this.state.growth.ui.panel = this.state.growth.ui.panel ?? null;
+    this.emit();
+  }
+
+  closeShop(): void {
+    this.state.growth.ui.shopOpen = false;
+    this.state.growth.ui.panel = null;
+    this.state.growth.ui.hireItemId = null;
+    void saveGrowthState(this.state);
+    this.emit();
+  }
+
+  purchaseShopItem(itemId: string): void {
+    const result = purchaseItem(this.state, itemId);
+    if (!result.ok) {
+      this.showHint(`Покупка недоступна: ${result.error ?? 'error'}`);
+    }
+    this.emit();
+  }
+
+  assignHire(employeeId: string, zoneId: string): void {
+    assignEmployee(this.state, employeeId, zoneId);
+    this.state.growth.ui.panel = null;
+    this.state.growth.ui.hireItemId = null;
+    void saveGrowthState(this.state);
+    this.emit();
+  }
+
+  setShopPanel(panel: 'shop' | 'hire' | 'org' | null): void {
+    this.state.growth.ui.panel = panel;
     this.emit();
   }
 }

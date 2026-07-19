@@ -51,6 +51,12 @@ body,
   padding: 24px;
 }
 
+/* Leave the canvas money / shop pill (top ~64px) visible and clickable. */
+.overlay--hud-gap {
+  top: 64px;
+  background: rgba(10, 16, 30, 0.82);
+}
+
 .overlay h1 {
   font-size: clamp(38px, 6.4vw, 78px);
   letter-spacing: 0.06em;
@@ -102,6 +108,125 @@ body,
 .btn[disabled] {
   opacity: 0.4;
   pointer-events: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+  border-color: rgba(220, 235, 255, 0.28);
+  color: var(--ice);
+}
+
+.overlay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+
+.help-fab {
+  position: absolute;
+  top: 64px;
+  right: 16px;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 235, 255, 0.22);
+  background: rgba(10, 16, 30, 0.88);
+  color: var(--ice);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.help-fab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(47, 123, 246, 0.55);
+  background: rgba(20, 31, 54, 0.95);
+  color: #fff;
+}
+
+.help-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 12, 24, 0.72);
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.help-panel {
+  width: min(560px, 96vw);
+  max-height: min(82vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.help-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.help-panel__title {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.help-panel__body {
+  padding: 8px 18px 20px;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.help-section {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(220, 235, 255, 0.06);
+}
+
+.help-section:last-child {
+  border-bottom: none;
+}
+
+.help-section h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+}
+
+.help-section p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ice);
+}
+
+.help-section p:last-child {
+  margin-bottom: 0;
 }
 
 .cards {

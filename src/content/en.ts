@@ -44,6 +44,7 @@ export const en: OverlayContent = {
     cashLabel: 'Shift cash',
     footer:
       'That is the ladder: observability → automation. The real platform does the same on a real factory.',
+    shopBtn: 'SHOP · REINVEST',
     againBtn: 'PLAY AGAIN',
   },
 };

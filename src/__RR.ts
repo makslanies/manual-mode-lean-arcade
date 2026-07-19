@@ -1,5 +1,8 @@
 import type { GameController } from '@/game/GameController';
 import { ACT1_LEN, ACT2_LEN, ACT3_LEN } from '@/core/constants';
+import { purchaseItem } from '@/domain/shop/ShopController';
+import { assignEmployee } from '@/domain/org/OrgController';
+import { aggregateOrgPenalty } from '@/domain/org/penalties';
 
 export function installRR(ctrl: GameController): void {
   const api = {
@@ -34,6 +37,35 @@ export function installRR(ctrl: GameController): void {
         })),
       };
     },
+    org() {
+      const s = ctrl.state;
+      return {
+        unlocked: s.growth.unlocked,
+        tutorialStep: s.growth.tutorialStep,
+        upkeep: s.growth.totalUpkeep,
+        bonusIncome: s.growth.bonusIncomeRate,
+        efficiency: s.org.efficiencyMult,
+        chaos: s.org.chaosLevel,
+        employees: s.org.employees.length,
+        escalations: s.org.escalations.length,
+        events: s.events.length,
+      };
+    },
+    unlockShop() {
+      ctrl.unlockShop();
+    },
+    openShop() {
+      ctrl.openShop();
+    },
+    buy(itemId: string) {
+      return purchaseItem(ctrl.state, itemId);
+    },
+    assign(employeeId: string, zoneId: string) {
+      return assignEmployee(ctrl.state, employeeId, zoneId);
+    },
+    penalty() {
+      return aggregateOrgPenalty(ctrl.state.org);
+    },
   };
   (window as unknown as { __RR: typeof api }).__RR = api;
 }
@@ -45,6 +77,12 @@ declare global {
       skipToRules: () => void;
       skipToEnd: () => void;
       state: () => Record<string, unknown>;
+      org: () => Record<string, unknown>;
+      unlockShop: () => void;
+      openShop: () => void;
+      buy: (itemId: string) => { ok: boolean; error?: string };
+      assign: (employeeId: string, zoneId: string) => boolean;
+      penalty: () => import('@/domain/org/penalties').PenaltyResult;
     };
   }
 }

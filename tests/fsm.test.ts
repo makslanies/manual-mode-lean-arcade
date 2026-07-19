@@ -54,10 +54,10 @@ describe('FSM — boundary', () => {
 
   it('ramps difficulty at act 1 edges and caps later acts', () => {
     expect(difficulty('play', 0)).toBeCloseTo(1);
-    expect(difficulty('play', ACT1_LEN)).toBeCloseTo(2.2);
-    expect(difficulty('play', ACT1_LEN * 2)).toBeCloseTo(2.2);
-    expect(difficulty('play2', 0)).toBe(2.2);
-    expect(difficulty('play3', 999)).toBe(2.4);
+    expect(difficulty('play', ACT1_LEN)).toBeCloseTo(1.85);
+    expect(difficulty('play', ACT1_LEN * 2)).toBeCloseTo(1.85);
+    expect(difficulty('play2', 0)).toBe(1.85);
+    expect(difficulty('play3', 999)).toBe(2.0);
   });
 });
 

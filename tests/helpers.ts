@@ -1,5 +1,6 @@
 import type { GameSnapshot } from '@/core/types';
 import { createInitialState, resetRun } from '@/domain/GameState';
+import { unlockGrowth } from '@/domain/org/OrgController';
 import type { TruckCallbacks } from '@/domain/production/trucks';
 import type { FailCallbacks } from '@/domain/production/failures';
 
@@ -12,6 +13,14 @@ export function freshState(seed = 1): GameSnapshot {
 export function gameplayState(mode: GameSnapshot['mode'] = 'play', seed = 1): GameSnapshot {
   const s = freshState(seed);
   s.mode = mode;
+  return s;
+}
+
+/** Growth-unlocked state with configurable cash for shop/org tests. */
+export function unlockedShopState(seed = 1, money = 10_000): GameSnapshot {
+  const s = freshState(seed);
+  unlockGrowth(s);
+  s.money = money;
   return s;
 }
 

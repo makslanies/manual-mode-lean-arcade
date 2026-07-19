@@ -34,6 +34,7 @@ export interface OverlayContent {
     preventedLabel: string;
     cashLabel: string;
     footer: string;
+    shopBtn: string;
     againBtn: string;
   };
 }
@@ -82,6 +83,7 @@ export const ru: OverlayContent = {
     footer:
       'Так работает лестница: наблюдаемость → автоматизация. Реальная платформа делает ' +
       'то же с настоящим заводом.',
+    shopBtn: 'МАГАЗИН · РЕИНВЕСТИРОВАТЬ',
     againBtn: 'ЕЩЁ СМЕНА',
   },
 };

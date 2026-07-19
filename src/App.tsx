@@ -38,6 +38,11 @@ export function App() {
       onToggleRule={(id) => ctrl?.toggleRule(id)}
       onWire={() => ctrl?.wireSelected()}
       onAgain={() => ctrl?.playAgain()}
+      onOpenShop={() => ctrl?.openShop()}
+      onCloseShop={() => ctrl?.closeShop()}
+      onPurchase={(id) => ctrl?.purchaseShopItem(id)}
+      onAssignHire={(emp, zone) => ctrl?.assignHire(emp, zone)}
+      onShopPanel={(p) => ctrl?.setShopPanel(p)}
     />
   );
 }

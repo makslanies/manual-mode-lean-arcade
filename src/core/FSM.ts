@@ -40,9 +40,9 @@ export function pauseDuration(kind: 'supply' | 'rules'): number {
 export function difficulty(mode: GameMode, phaseT: number): number {
   if (mode === 'play') {
     const t = Math.max(0, Math.min(1, phaseT / ACT1_LEN));
-    return 1 + t * 1.2;
+    return 1 + t * 0.85; // gentler ramp — more time to react
   }
-  return mode === 'play3' ? 2.4 : 2.2;
+  return mode === 'play3' ? 2.0 : 1.85;
 }
 
 export function nextModeAfterPhase(mode: GameMode): GameMode | null {

@@ -9,6 +9,7 @@ import {
 import type { GameSnapshot, ZoneState } from '@/core/types';
 import { ZONE_DEFS } from './production/zones';
 import { createRules } from './lean/rules';
+import { createInitialGrowth, createInitialOrg, resetOrgState } from './org/OrgController';
 
 function createZone(def: (typeof ZONE_DEFS)[0]): ZoneState {
   return {
@@ -82,11 +83,17 @@ export function createInitialState(seed = DEFAULT_SEED): GameSnapshot {
     selRules: new Set(),
     seed,
     commandJournal: [],
+    org: createInitialOrg(),
+    growth: createInitialGrowth(),
+    events: [],
   };
 }
 
-export function resetRun(state: GameSnapshot): void {
-  state.money = START_MONEY;
+export function resetRun(state: GameSnapshot, opts?: { resetOrg?: boolean }): void {
+  // Keep wallet when the growth layer is already open so hires/upkeep survive shifts.
+  if (!state.growth.unlocked || opts?.resetOrg) {
+    state.money = START_MONEY;
+  }
   state.comboMult = 1;
   state.comboN = 0;
   state.comboUntil = 0;
@@ -154,4 +161,15 @@ export function resetRun(state: GameSnapshot): void {
   state.alarmAcc = 0;
   state.moneyPulse = 0;
   state.commandJournal = [];
+  // Growth/org persist across shifts (IndexedDB + in-session). Hard wipe only on demand.
+  if (opts?.resetOrg) {
+    resetOrgState(state);
+  } else {
+    state.growth.ui = {
+      shopOpen: false,
+      panel: null,
+      hireItemId: null,
+      selectedCategory: state.growth.ui.selectedCategory ?? 'personnel',
+    };
+  }
 }

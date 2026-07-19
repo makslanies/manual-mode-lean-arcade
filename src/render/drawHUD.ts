@@ -11,6 +11,66 @@ import {
 import { PAL, gaugeColor } from '@/render/palette';
 import { roundRect } from '@/render/iso';
 
+/** Canvas money pill geometry — keep in sync with hit-testing. */
+export const MONEY_PILL = { w: 260, h: 46, top: 12 } as const;
+
+export function moneyPillRect(camW: number): { x: number; y: number; w: number; h: number } {
+  return {
+    x: camW / 2 - MONEY_PILL.w / 2,
+    y: MONEY_PILL.top,
+    w: MONEY_PILL.w,
+    h: MONEY_PILL.h,
+  };
+}
+
+export function shopIconRect(camW: number): { x: number; y: number; w: number; h: number } {
+  const pill = moneyPillRect(camW);
+  return { x: pill.x + 10, y: pill.y + 7, w: 32, h: 32 };
+}
+
+export function hitShopIcon(camW: number, sx: number, sy: number): boolean {
+  const r = shopIconRect(camW);
+  return sx >= r.x && sx <= r.x + r.w && sy >= r.y && sy <= r.y + r.h;
+}
+
+function drawShopBagIcon(ctx: CanvasRenderingContext2D, camW: number, badge: number): void {
+  const r = shopIconRect(camW);
+  const g = ctx.createLinearGradient(r.x, r.y, r.x, r.y + r.h);
+  g.addColorStop(0, '#2f7bf6');
+  g.addColorStop(1, '#1b4fd8');
+  ctx.fillStyle = g;
+  roundRect(ctx, r.x, r.y, r.w, r.h, 10);
+  ctx.fill();
+
+  // Simple bag silhouette
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  const cx = r.x + r.w / 2;
+  const cy = r.y + r.h / 2 + 1;
+  ctx.moveTo(cx - 7, cy - 2);
+  ctx.lineTo(cx - 8, cy + 8);
+  ctx.lineTo(cx + 8, cy + 8);
+  ctx.lineTo(cx + 7, cy - 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 4, 4.5, Math.PI, 0);
+  ctx.stroke();
+
+  if (badge > 0) {
+    ctx.fillStyle = PAL.amber;
+    ctx.beginPath();
+    ctx.arc(r.x + r.w - 2, r.y + 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1200';
+    ctx.font = '800 10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(Math.min(badge, 9)), r.x + r.w - 2, r.y + 5);
+  }
+}
+
 export function drawHUD(
   ctx: CanvasRenderingContext2D,
   cam: RenderCamera,
@@ -21,14 +81,21 @@ export function drawHUD(
   state.moneyPulse = Math.max(0, state.moneyPulse - dtReal * 3);
   const msz = 26 + state.moneyPulse * 6;
   const { w: W, h: H } = cam;
+  const shopOn = state.growth.unlocked && !state.growth.ui.shopOpen;
+  const moneyPadL = shopOn ? 36 : 0;
+  const pill = moneyPillRect(W);
 
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(10,16,30,.8)';
-  roundRect(ctx, W / 2 - 130, 12, 260, 46, 14);
+  roundRect(ctx, pill.x, pill.y, pill.w, pill.h, 14);
   ctx.fill();
+  if (shopOn) {
+    drawShopBagIcon(ctx, W, state.org.escalations.length);
+  }
   ctx.fillStyle = state.comboMult > 1 ? PAL.gold : PAL.ice;
   ctx.font = `800 ${msz}px system-ui`;
-  ctx.fillText(fmtMoney(state.money), W / 2, 45);
+  ctx.textAlign = 'center';
+  ctx.fillText(fmtMoney(state.money), W / 2 + moneyPadL / 2, 45);
   if (state.comboMult > 1) {
     ctx.fillStyle = PAL.gold;
     ctx.font = '800 13px system-ui';

@@ -17,17 +17,17 @@ describe('SeedRng determinism', () => {
 });
 
 describe('FSM timings', () => {
-  it('act lengths match prototype', () => {
-    expect(actLength('play')).toBe(130);
-    expect(actLength('play2')).toBe(55);
-    expect(actLength('play3')).toBe(60);
+  it('act lengths match paced chapter-0 timings', () => {
+    expect(actLength('play')).toBe(165);
+    expect(actLength('play2')).toBe(75);
+    expect(actLength('play3')).toBe(85);
   });
 
   it('difficulty ramps act 1 and caps act 3', () => {
     expect(difficulty('play', 0)).toBeCloseTo(1);
-    expect(difficulty('play', 130)).toBeCloseTo(2.2);
-    expect(difficulty('play3', 0)).toBe(2.4);
-    expect(difficulty('play2', 0)).toBe(2.2);
+    expect(difficulty('play', 165)).toBeCloseTo(1.85);
+    expect(difficulty('play3', 0)).toBe(2.0);
+    expect(difficulty('play2', 0)).toBe(1.85);
   });
 });
 

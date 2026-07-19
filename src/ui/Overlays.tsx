@@ -15,6 +15,7 @@ export function TitleOverlay({ onStart }: TitleOverlayProps) {
       <div className="tag">{t.title.tag}</div>
       <h1 id="title-heading">{t.title.heading}</h1>
       <div className="small">{t.title.description}</div>
+      <div className="small">Подсказка: кнопка «?» справа или клавиша ?</div>
       <button type="button" className="btn" onClick={onStart}>
         {t.title.startBtn}
       </button>
@@ -34,7 +35,7 @@ export function SupplyOverlay({ state, onToggleSensor, onMount }: SupplyOverlayP
   const timerSec = Math.max(0, Math.ceil(state.supplyLeft));
 
   return (
-    <div className="overlay" role="dialog" aria-labelledby="supply-heading">
+    <div className="overlay overlay--hud-gap" role="dialog" aria-labelledby="supply-heading">
       <div className="tag">{t.supply.tag}</div>
       <h1 id="supply-heading" className="overlay__heading--sm">
         {t.supply.heading}
@@ -85,7 +86,7 @@ export function RulesOverlay({ state, onToggleRule, onWire }: RulesOverlayProps)
   const timerSec = Math.max(0, Math.ceil(state.rulesLeft));
 
   return (
-    <div className="overlay" role="dialog" aria-labelledby="rules-heading">
+    <div className="overlay overlay--hud-gap" role="dialog" aria-labelledby="rules-heading">
       <div className="tag">{t.rules.tag}</div>
       <h1 id="rules-heading" className="overlay__heading--sm">
         {t.rules.heading}
@@ -128,17 +129,19 @@ export function RulesOverlay({ state, onToggleRule, onWire }: RulesOverlayProps)
 export interface EndOverlayProps {
   state: GameSnapshot;
   onAgain: () => void;
+  onOpenShop?: () => void;
 }
 
-export function EndOverlay({ state, onAgain }: EndOverlayProps) {
+export function EndOverlay({ state, onAgain, onOpenShop }: EndOverlayProps) {
   const p1 = lossPct(state.stat[1]);
   const p2 = lossPct(state.stat[2]);
   const p3 = lossPct(state.stat[3]);
   const totalTrips = state.tripsOnTime + state.tripsLate;
   const title = p3 < p1 ? t.end.titleWin : t.end.titleFallback;
+  const shopReady = state.growth.unlocked;
 
   return (
-    <div className="overlay" role="dialog" aria-labelledby="end-heading">
+    <div className="overlay overlay--hud-gap" role="dialog" aria-labelledby="end-heading">
       <div className="tag">{t.end.tag}</div>
       <h1 id="end-heading" className="overlay__heading--md">
         {title}
@@ -180,9 +183,16 @@ export function EndOverlay({ state, onAgain }: EndOverlayProps) {
         </div>
       </div>
       <div className="small">{t.end.footer}</div>
-      <button type="button" className="btn" onClick={onAgain}>
-        {t.end.againBtn}
-      </button>
+      <div className="overlay__actions">
+        {shopReady && onOpenShop && (
+          <button type="button" className="btn" onClick={onOpenShop}>
+            {t.end.shopBtn}
+          </button>
+        )}
+        <button type="button" className="btn btn--ghost" onClick={onAgain}>
+          {t.end.againBtn}
+        </button>
+      </div>
     </div>
   );
 }

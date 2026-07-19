@@ -2,6 +2,7 @@ import type { GameSnapshot, RenderCamera } from '@/core/types';
 import { ZONES_ORDERED } from '@/domain/production/zones';
 import { drawDashboard, drawHUD, drawParticles, drawQuip } from '@/render/drawHUD';
 import { drawDirector, drawLogic, drawTrucks, drawZone } from '@/render/drawZones';
+import { drawStaff } from '@/render/drawStaff';
 import { drawFloor, fitCamera } from '@/render/iso';
 import { PAL } from '@/render/palette';
 
@@ -63,6 +64,7 @@ export class GameRenderer {
     }
     if (!dirDrawn) drawDirector(ctx, cam, state);
 
+    drawStaff(ctx, cam, state);
     drawTrucks(ctx, cam, state);
 
     if (state.powerOut) {
