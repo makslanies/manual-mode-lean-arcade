@@ -1,0 +1,146 @@
+# AGENT TASK 2: Economy, Shop, Staff, Map Expansion
+# Working directory: /home/lanies/git/codeops/TEST_VOLY_JOB_MA/task-3d-lead/
+# Repo: https://github.com/makslanies/manual-mode-lean-arcade
+# Brief date: 2026-07-19 · Version: 1.0
+
+================================================================================
+LANGUAGE RULE (MANDATORY)
+================================================================================
+
+All agent-facing work MUST be in English: code, comments, README updates,
+REPORT_TASK2.md, commits, tests, identifiers, agent communication.
+
+Player-facing UI may stay RU via content/ru.ts (+ en stubs). Do not mix
+languages in domain logic.
+
+================================================================================
+0. GOAL
+================================================================================
+
+Extend the playable chapter-0 arcade into a factory-growth layer:
+
+  earn → identify bottleneck → buy/hire → assign teams/managers →
+  expand land / build → manage logistics → sustainable org (not spam builds)
+
+Source of truth for this expansion:
+  docs/task2/Техническое_дополнение_Экономика_Персонал_Магазин_Карта.md
+
+Keep chapter-0 acts 1–3 playable. Do not rewrite the vertical slice from scratch.
+
+QUALITY BAR: ≥ 9/10 for the scoped MUST slice — playable shop/HR loop wired into
+the existing game, tests green, build green, AC-01…AC-05 + AC-10…AC-12 for the
+delivered slice.
+
+================================================================================
+1. SOURCES (priority)
+================================================================================
+
+| File | Role |
+|------|------|
+| docs/task2/…_Магазин_Карта.md | PRIMARY — shop, staff, managers, map, roads, economy, DB, AC |
+| AGENT_TASK.txt / existing src/ | Baseline chapter-0 architecture to extend |
+| docs/Технический_документ_…Lean_Arcade.md | Campaign context (do not implement ch.1–9) |
+| docs/act1-prototype.html | Feel parity for existing acts |
+
+Conflict rule: task2 supplement wins for shop/HR/map/economy; chapter-0 as-built
+wins for act timings/FSM unless task2 explicitly changes them.
+
+================================================================================
+2. LOCKED STACK (unchanged)
+================================================================================
+
+TypeScript + Vite + React + Canvas 2D + Web Audio + IndexedDB.
+Modular domain separate from React/render. Deterministic seed + command journal.
+File line policy: ≤300 LOC (500 only with architect FILE_LINE_LIMIT markers).
+
+Suggested new modules (architect may refine):
+  src/domain/org/          # employees, roles, teams, managers, tasks
+  src/domain/shop/         # catalog, prerequisites, purchase, upkeep
+  src/domain/map/          # sectors, structures, placement, energy
+  src/domain/logistics/    # roads, routes, congestion (stubs OK if time-boxed)
+  src/ui/shop/             # ShopOverlay, HireAssign, OrgChart (minimal)
+  src/persistence/         # extend schema / migrations for new entities
+
+================================================================================
+3. SCOPE FOR THIS RUN
+================================================================================
+
+MUST (iterations 1–3 from supplement §20 — playable growth slice):
+  [ ] Shop with ≥6 categories; prerequisite checks; purchase + recurring upkeep
+  [ ] Hire workers/specialists; stats; assign to zone/team
+  [ ] Brigades + manager; measurable penalty when brigade oversized / unmanaged
+  [ ] Manager auto-assigns routine tasks within authority; hero gets escalations
+  [ ] First-run shop tutorial beat (supplement §18 steps 1–5 at minimum)
+  [ ] Event journal for hire/buy/assign/escalate
+  [ ] Persist/restore new entities (AC-10) via IndexedDB
+  [ ] Seed-deterministic org/economy tick (AC-12)
+  [ ] Tests for shop prerequisites, hire/assign, unmanaged-brigade penalty
+  [ ] npm test + npm run build green; REPORT_TASK2.md (English)
+  [ ] window.__RR extended OR __RR.org / shop helpers for demo
+
+SHOULD (if time remains):
+  [ ] Unlock one map sector + place one structure type with staff/energy gates
+  [ ] Road upgrade stub affecting trip time (AC-08 lite)
+  [ ] Materials/inventory stubs + reorder policy hooks
+  [ ] IndexedDB conceptual tables from §13 as typed stores (not all 40 full UIs)
+
+OUT OF SCOPE this run:
+  • Full campaign chapters 1–9
+  • All 15 structure types polished
+  • Full 18 employee types + 10 manager types with unique art
+  • Multiplayer / backend server
+  • Perfect balance of every purchase
+
+================================================================================
+4. ACCEPTANCE (from supplement §19 — prioritize delivered slice)
+================================================================================
+
+AC-01 Shop ≥6 categories + prerequisites
+AC-02 Hire + assign to brigade/structure
+AC-03 Unmanaged/oversize brigade penalty measurable
+AC-04 Manager auto-assigns routine tasks
+AC-05 Hero receives escalations when structure works
+AC-06 Sector unlock (SHOULD)
+AC-07 Structure activation needs staff/road/energy (SHOULD)
+AC-08 Road affects trip time (SHOULD)
+AC-09 Capacity raises income AND upkeep
+AC-10 Save/restore staff, tasks, objects
+AC-11 Event journal
+AC-12 Seed + commands reproducibility
+
+================================================================================
+5. ARCHITECT MANDATORY WORK ORDER
+================================================================================
+
+1) Read AGENT_TASK_2.txt fully.
+2) Read docs/task2 markdown (all sections; focus §§1–6, 12–20 for this slice).
+3) Skim current src/ (GameController, GameState, persistence, overlays).
+4) Read latest reuse report if present; prefer MIT/Apache modules for UI lists /
+   state machines over greenfield where useful.
+5) Produce architecture plan + agent distribution:
+     architect → plan + schema + module boundaries
+     developer → implement MUST slice into existing game
+     tester → vitest for shop/org/penalties/seed
+     reviewer → AC checklist + regressions on chapter-0
+6) Plan only — no full source dumps. Keep chapter-0 FSM intact.
+
+================================================================================
+6. UI / ANTI-GLITCH (shop & org)
+================================================================================
+
+  [ ] Shop/org overlays must not click-through to canvas
+  [ ] Canvas node must not remount when opening shop (stable App shell)
+  [ ] Disabled shop items show concrete block reason
+  [ ] Hire flow: buy → assign screen (zone/team/shift/manager)
+  [ ] No layout blowouts at 1366×768 and 1920×1080
+  [ ] Recurring upkeep visible before purchase (forecast)
+
+================================================================================
+7. DEFINITION OF DONE
+================================================================================
+
+Chapter-0 still playable (title→acts→end).
+Shop/HR/brigade loop playable after first shift money.
+AC-01…05 and AC-10…12 marked in REPORT_TASK2.md.
+npm test && npm run build succeed.
+Changes committed locally (push optional if orchestrator requests).

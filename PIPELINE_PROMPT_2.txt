@@ -1,0 +1,38 @@
+Extend the existing Manual Mode Lean Arcade (chapter 0 already implemented in this
+repo) with the Economy / Shop / Staff / Map expansion described in
+docs/task2/Техническое_дополнение_Экономика_Персонал_Магазин_Карта.md.
+
+QUALITY BAR: ≥ 9/10 for the MUST slice in AGENT_TASK_2.txt.
+LANGUAGE: English for all agent work (code, tests, REPORT_TASK2.md). Player UI may stay RU via i18n.
+
+=== MANDATORY WORK ORDER ===
+
+0) CODE REUSE FIRST
+   - Read `.voly/reuse/reports/latest.json` if present.
+   - Run / rely on VOLY auto-reuse for relevant queries
+     (e.g. "typescript game shop inventory UI", "ecs entity component typescript").
+   - Prefer license-allowed modules; otherwise implement cleanly in-domain.
+
+1) ARCHITECT FIRST
+   a. Read AGENT_TASK_2.txt completely.
+   b. Study docs/task2/*.md (shop, personnel, brigades, managers, map, economy,
+      DB §§13–16, AC §19, implementation order §20).
+   c. Review existing src/ (do not break chapter-0 FSM / acts 1–3).
+   d. Design module boundaries + IndexedDB migration approach.
+   e. Define agent distribution (architect → developer → tester → reviewer).
+   f. Plan only — no full code dumps. Enforce ≤300 LOC files.
+
+2) DEVELOPER — implement MUST from AGENT_TASK_2.txt:
+   Shop (≥6 categories, prerequisites, upkeep), hire/assign staff, brigades +
+   manager penalty, manager auto-tasks + hero escalations, event journal,
+   persistence, shop tutorial beat (§18 steps 1–5), keep chapter-0 playable.
+   Wire React overlays without remounting the game canvas.
+
+3) TESTER — vitest for prerequisites, hire/assign, unmanaged brigade penalty,
+   seed determinism, persistence round-trip.
+
+4) REVIEWER — AC-01…AC-12 for delivered slice; regression check chapter-0;
+   note gaps honestly in REPORT_TASK2.md.
+
+OUT OF SCOPE: full campaign ch.1–9; polishing all 15 buildings / all 18+10 roles.
+Definition of done: npm test && npm run build green; REPORT_TASK2.md written.
