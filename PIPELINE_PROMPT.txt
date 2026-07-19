@@ -1,0 +1,36 @@
+Build a production-quality playable vertical slice of the educational Lean factory arcade "Manual Mode" (chapter 0 / acts 1–3) in this working directory.
+
+QUALITY BAR: the result must be at least 9/10 — playable end-to-end, solid architecture, UI without click-through/glitch bugs, timings and 7-zone FSM matching the prototype. Not a stub or sketch.
+
+LANGUAGE: All agent communication, code, comments, README, REPORT.md, commits = English. Player-facing UI may use RU strings via i18n to match the prototype.
+
+=== MANDATORY WORK ORDER ===
+
+0) CODE REUSE FIRST (already pre-run by VOLY; also verify):
+   - Read `.voly/reuse/reports/latest.json` (and any Code reuse report in context).
+   - Prefer adapting license-allowed modules (MIT/Apache/BSD) under vendor/reuse over rewriting from scratch.
+   - If the report is empty/denied, run: `voly reuse search "browser isometric factory game threejs typescript" --lang TypeScript` (or equivalent) before scaffolding.
+
+1) ARCHITECT (must go first — do not skip):
+   a. Read AGENT_TASK.txt in full (acceptance criteria, anti-glitch UI checklist, locked stack).
+   b. Study documents in docs/:
+        - docs/Технический_документ_Ручной_режим_Lean_Arcade.md (full GDD/TDD)
+        - docs/РУЧНОЙ_РЕЖИМ_техдокумент.md (as-built FSM, timings, formulas, UI)
+        - docs/act1-prototype.html (open/read — behavioral golden for chapter 0)
+   c. Produce an architecture plan: modules, data flow, FSM, seed determinism, React overlays vs Canvas, IndexedDB, window.__RR.
+   d. Explicitly DEFINE the agent distribution for this task (who does what, dependencies, file ownership). Recommended:
+        architect → plan + agent distribution (this step)
+        developer → Vite+TS+React+Canvas implementation of chapter 0
+        tester → simulation/unit tests (seed, rules, budgets)
+        reviewer → AC-01…AC-13 + UI anti-glitch checklist
+   e. Plan only — no full source dumps. Enforce 300-line file policy (500 only with FILE_LINE_LIMIT markers).
+
+2) DEVELOPER: implement chapter 0 per AGENT_TASK.txt MUST list and architect plan. Locked stack: TypeScript + Vite + Canvas/PixiJS + React + Web Audio + IndexedDB. Scaffold next to docs/ (not inside docs/). Deliver playable title→play→supply→play2→rules→play3→end→reset.
+
+3) TESTER: tests for formulas, sensor/rule budgets, seed determinism, FSM transitions.
+
+4) REVIEWER: verify AC-01…AC-13 and §5.3 anti-glitch checklist; list residual gaps honestly.
+
+OUT OF SCOPE: chapters 1–9 full campaign, multiplayer, backend, leaderboard.
+
+Definition of done: npm run build works; game playable; REPORT.md (English) lists AC pass/fail and reuse candidates used.

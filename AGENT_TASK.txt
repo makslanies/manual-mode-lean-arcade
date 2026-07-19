@@ -1,0 +1,297 @@
+# AGENT TASK: "Manual Mode" — Lean Arcade
+# Working directory: /home/lanies/git/codeops/TEST_VOLY_JOB_MA/task-3d-lead/
+# Brief date: 2026-07-19 · Version: 1.1
+
+================================================================================
+LANGUAGE RULE (MANDATORY)
+================================================================================
+
+All agent-facing work MUST be in English:
+  • This brief, README, REPORT.md, commit messages, code comments, identifiers
+  • Logs, test names, error messages in source
+  • Agent ↔ orchestrator communication
+
+Player-facing UI copy for chapter 0 SHOULD match the prototype/GDD for fidelity
+(Russian strings in docs/act1-prototype.html). Prefer an i18n dictionary
+(content/en.ts + content/ru.ts) with RU as the default locale for chapter 0;
+do not hard-code mixed languages in logic. Engineering layer stays English.
+
+
+================================================================================
+0. GOAL
+================================================================================
+
+Ship a playable vertical slice (chapter 0 / acts 1–3) of the educational
+factory arcade "Manual Mode", and lay down architecture for the full campaign
+(chapters 0–9, ~8–12 hours of content).
+
+Pedagogical ladder (must be felt in play, not only explained):
+  Manual chaos → Observability (sensors) → Automation (IF→THEN rules)
+
+Overwhelm / "losing" in Act 1 is an intentional learning outcome.
+There is no separate game-over: the shift always reaches the results screen.
+
+Deliverable for this run = fully playable chapter 0 + project scaffold for
+later chapters. Do NOT implement the entire 0–9 campaign in one pass.
+
+
+================================================================================
+1. SOURCES (read order / priority)
+================================================================================
+
+All materials are under ./docs/
+
+| File | Role | Priority |
+|------|------|----------|
+| docs/Технический_документ_Ручной_режим_Lean_Arcade.md | Full-game GDD/TDD: campaign, architecture, analytics, AC, roadmap | PRIMARY |
+| docs/РУЧНОЙ_РЕЖИМ_техдокумент.md | As-built prototype spec: FSM, timings, formulas, UI, audio, __RR | CHAPTER-0 MECHANICS GOLDEN |
+| docs/act1-prototype.html | Playable feel/numbers reference (open in browser and compare) | BEHAVIOR GOLDEN |
+| docs/Технический_документ_Ручной_режим_Lean_Arcade.docx | GDD original (do not feed to agents; use the .md) | Archive |
+
+Conflict resolution:
+  • Product scope / architecture / campaign / saves / analytics → GDD (.md).
+  • Chapter-0 timings, zone formulas, HUD, overlays, audio, service hook → as-built + HTML.
+  • If numbers disagree → act1-prototype.html + РУЧНОЙ_РЕЖИМ_техдокумент.md win.
+
+
+================================================================================
+2. LOCKED STACK (do not re-choose)
+================================================================================
+
+Full project (GDD §11):
+  TypeScript + Vite
+  HTML5 Canvas 2D OR PixiJS — isometric world
+  React — HUD, overlays, decision cards, results
+  Web Audio API — audio (procedural synth OK, as in the prototype)
+  IndexedDB — profile / progress / schema migrations
+  Static frontend / PWA-ready, no required backend
+  Browsers: Chrome, Edge, Firefox, Safari (GDD §17)
+
+For the vertical slice (chapter 0), a simpler renderer (plain Canvas) is OK,
+but modular TypeScript structure is required — not a single monolithic HTML file.
+
+Suggested layout (GDD):
+  index.html
+  src/
+    core/              # clock, seed, commands, events, mode FSM
+    domain/production/ # zones, machines, orders, people, logistics, economy
+    domain/lean/       # sensors, rules, kanban/standards stubs for ch.1+
+    scenarios/         # chapter 0 config + room for later chapters
+    render/            # isometric, camera, hit-testing, particles
+    ui/                # React HUD + overlays (title/supply/rules/end/hint)
+    audio/
+    persistence/
+    analytics/
+    content/           # locale strings (en + ru dictionaries)
+  assets/
+  tests/
+
+Architecture invariants:
+  Simulation is deterministic for a fixed seed.
+  Core advances on a fixed time step.
+  UI only visualizes state and emits commands.
+  Domain logic MUST NOT depend on render or React.
+
+
+================================================================================
+3. SCOPE FOR THIS RUN
+================================================================================
+
+MUST (chapter 0 — vertical slice):
+  [ ] 7-state FSM with prototype timings:
+        title → play(130s) → supply(15s) → play2(55s) → rules(20s) → play3(60s) → end
+        "PLAY AGAIN" → full reset without page reload
+  [ ] 7 zones with Act-1 unlock schedule (0 / 15 / 30 / 50 / 68 / 88 / 105 s)
+  [ ] Fog of war + lookUntil ≈ 3 s; sensors clear fog permanently
+  [ ] Supply pause: budget 3 sensors of 5; auto-mount on timer
+  [ ] Rules pause: only for zones with sensors; budget 3; auto-start on timer
+  [ ] Act 3: auto-rules with ~1.4 s cooldown; player handles exceptions
+  [ ] Economy, accidents, trips, prevented, autoActs, loss% compare p1/p2/p3
+  [ ] Isometric scene + director (walk to zone / act)
+  [ ] DOM/React overlays: title, supply, rules, end + hint pill
+  [ ] Canvas HUD: cash, phase+timer, accidents/trips, phone, dispatcher panel
+  [ ] Radio / role quips (non-blocking; fade in/out)
+  [ ] Input: pointer + keyboard (WASD/arrows + Cyrillic-layout WASD equivalents, Space/Enter)
+  [ ] Web Audio (init on first user gesture)
+  [ ] window.__RR: skipToSupply / skipToRules / skipToEnd / state()
+  [ ] Minimal autosave: profile + run result (IndexedDB)
+  [ ] README (English): npm i && npm run dev; how to open the prototype for parity
+
+SHOULD (if time remains after MUST):
+  [ ] Learning Score stub (GDD §13 formula) on results screen
+  [ ] Difficulty mode "Standard" (Tutorial/Expert as menu stubs)
+  [ ] Transfer question / mini-reflection after results (GDD AC-10)
+  [ ] Unit/simulation tests for formulas and seed determinism
+  [ ] domain/lean stubs for chapters 1–4 (interfaces only)
+
+OUT OF SCOPE for this run:
+  • Full chapters 1–9 and level map 1.1–9.3
+  • Multiplayer, factory editor, backend, leaderboard, lead capture
+  • Corporate analytics / server telemetry
+  • Full EN localization of player UI (lay EN dictionary; RU default OK for ch.0)
+  • Pixel-perfect HTML clone — behavior parity matters more than copy-paste art
+
+
+================================================================================
+4. CHAPTER-0 NUMBERS (parity with prototype)
+================================================================================
+
+Timings: ACT1=130, SUPPLY=15, ACT2=55, RULES=20, ACT3=60 (seconds).
+Budgets: SENSOR_BUDGET=3, RULE_BUDGET=3.
+Difficulty: Act1 lerp 1→2.2; Act2 = 2.2; Act3 = 2.4.
+Grid: GRID 18×18, tile TW=68 TH=34, isometric 2:1.
+Camera: fit to window, DPR cap = 2.
+Zone hit: radius ≈ 80·scale from anchor; truck click = dock click.
+
+Zones (id → Act1 unlock → metric → sensor?):
+  machine  0s   machine temp     thermo sensor
+  hopper  15s   raw (inverted)   level sensor
+  dock    30s   trip deadline    GPS telematics
+  press   50s   wear             NO sensor
+  worker  68s   stamina          NO sensor
+  fridge  88s   cold-store temp  fridge thermo
+  power  105s   load             power meter
+
+Rules (only if zone has a sensor):
+  T≥80% → machine blowers
+  raw≤20% → auto-order
+  deadline<5s → auto-dispatcher
+  fridge T≥70% → boost cooling
+  load≥80% → shed load
+
+Pauses MUST NOT hang without input (kiosk-safe): auto-mount / auto-start.
+
+
+================================================================================
+5. UI / UX — REQUIREMENTS AND ANTI-GLITCH CHECKLIST
+================================================================================
+
+5.1. Two layers (required)
+  • Canvas — world, gameplay HUD, particles, phone, dispatcher.
+  • React/DOM — fullscreen overlays: title / supply / rules / end + #hint.
+  Overlay above canvas (higher z-index), dimmed backdrop + blur.
+  While an overlay is open, canvas MUST NOT receive clicks
+  (pointer-events: none on canvas OR overlay covers inset:0).
+
+5.2. Visual system (GDD §9 + as-built §5)
+  Normal=blue/azure · Warning=amber · Critical=red ·
+  Improved=green · Auto=cyan · Unobserved=grey fog.
+  HUD: at most five primary metrics.
+  All 7 zones readable without map scrolling on target resolutions.
+
+5.3. Anti-glitch checklist (required acceptance)
+
+Layout / responsive:
+  [ ] No text/button/panel overlaps at 1366×768 and 1920×1080 (AC-09)
+  [ ] Also check 1280×720 and ~900×700: nothing clipped; critical buttons clickable
+  [ ] Window resize recomputes canvas size + camera; no dead black bars / blurry stretch
+  [ ] DPR / devicePixelRatio: sharp text/lines (cap 2); click coords match draw
+      (common bug: clicks miss zones)
+  [ ] Supply/rules cards do not jump: wrapping long strings; button stable on n/3
+  [ ] Hint pill does not cover overlay buttons and does not capture clicks
+      (pointer-events: none)
+  [ ] Touch: buttons ≥ ~44px; no accidental page zoom (viewport / touch-action)
+
+Layers and input:
+  [ ] In title/supply/rules/end, clicks do NOT fall through to canvas
+      (director must not walk "under the menu")
+  [ ] Closing an overlay leaves no invisible pointer-events blocker
+  [ ] Keys do not stick after Alt-Tab / blur / visibilitychange
+  [ ] Repeat click on a zone while the director is acting is ignored
+  [ ] Space/Enter in an overlay do not trigger world actions; Enter may
+      confirm the overlay button — never both
+  [ ] Focus: after shift start, focus is not trapped in a hidden button
+
+FSM / timers UI:
+  [ ] Pause timers keep ticking in a background tab (prototype watchdog interval)
+  [ ] "MOUNT" disabled until selection count == 3; auto-mount stays consistent
+  [ ] Rules without sensors unavailable / stub text; no orphan rules
+  [ ] play→supply→play2 resets zones for fair comparison (value, failed,
+      powerOut, deadlines) per as-built
+  [ ] "PLAY AGAIN" clears particles, floats, quips, shake, hitstop
+
+Render / perf:
+  [ ] Stable isometric Z-order (no director popping over distant buildings)
+  [ ] Particle cap; no float/pulse leaks across shifts
+  [ ] Hitstop/shake never permanently break hit-testing
+  [ ] FPS drops must not break phase timers (dt clamp; sim ≠ raw rAF)
+  [ ] Target 60 FPS on a mid laptop, min 30 FPS; first interactive < 3 s
+
+Accessibility (chapter-0 minimum):
+  [ ] Mouse + keyboard work (AC-08)
+  [ ] Alerts are not color-only: icon/badge/pulse/sound
+  [ ] Master mute (UI or M key); audio errors must not stop the game
+  [ ] Optional reduce-flash mode (disable shake/heavy flash)
+
+Copy:
+  [ ] Player strings via content dictionaries; no truncated titles on 1366
+  [ ] Dynamic results headline when p3 < p1 vs fallback
+  [ ] hintOnce tips do not spam every frame or stack on each other
+
+
+================================================================================
+6. ACCEPTANCE CRITERIA (GDD + extras)
+================================================================================
+
+AC-01  Three acts complete without page reload.
+AC-02  Act 1 unlocks seven zones on the schedule.
+AC-03  Sensor choice limited to three of five.
+AC-04  Rules available only for installed sensors.
+AC-05  Auto-rules actually change simulation state (not cosmetics only).
+AC-06  Results compare three acts on the same metrics (loss% etc.).
+AC-07  Same seed + command journal → same result.
+AC-08  Mouse and keyboard both work.
+AC-09  No UI overlaps at 1366×768 and 1920×1080.
+AC-10  Learning takeaway + transfer question (or an explicit stub screen).
+
+Extra for this run:
+AC-11  window.__RR.state() reflects mode/money/zones/rules; skip* works.
+AC-12  npm run build succeeds; dev server launches the game.
+AC-13  Parity with docs/act1-prototype.html: same phases, budgets, 7 zones,
+       feel of overload → relief (art differences allowed).
+
+
+================================================================================
+7. RECOMMENDED AGENT WORK ORDER
+================================================================================
+
+1. Read this file in full (English).
+2. Open docs/act1-prototype.html and play through to end.
+3. Read as-built (mechanics) and GDD §§8–12, 17–18 (architecture, NFR, AC).
+4. Scaffold Vite+TS+React in this folder (next to docs/, not inside it).
+5. core FSM + domain simulation first (no fancy art) — drive via __RR.
+6. Then isometric render + hit-test.
+7. Then React overlays + HUD.
+8. Then audio, particles, UI polish against §5.3.
+9. Seed/formula tests; English README; self-check AC-01…AC-13.
+
+Commands:
+  npm install
+  npm run dev
+  npm run build
+  npm test          # if tests were added
+
+
+================================================================================
+8. DEFINITION OF DONE
+================================================================================
+
+Chapter 0 is playable from title → end → "PLAY AGAIN".
+Stack and modules match §2.
+AC-01…AC-13 marked passed (short note in README or REPORT.md, English).
+UI checklist §5.3 has no critical defects (click-through, sticky keys,
+layout blowouts, DPR/hit-test mismatch, stuck pauses).
+Sources under docs/ are neither deleted nor overwritten.
+All agent artifacts (code comments, README, REPORT) are in English.
+
+
+================================================================================
+9. NOTES FOR VOLY ORCHESTRATOR
+================================================================================
+
+• Task CWD: /home/lanies/git/codeops/TEST_VOLY_JOB_MA/task-3d-lead/
+• Lock the stack from §2 in the prompt (do not let agents choose
+  "single HTML" vs TypeScript project).
+• Feed agents the .md files, not the .docx. Agent brief is this English file.
+• Prompt language: English. Multi-agent / claude-code is appropriate.
+• Do not run this task inside the voly repo — only TEST_VOLY_JOB_MA.

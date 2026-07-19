@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>РУЧНОЙ РЕЖИМ — прототип · акты 1–3</title>
+<style>
+  :root{
+    --bg:#0e1526; --panel:#141f36; --line:rgba(220,235,255,.08);
+    --azure:#2f7bf6; --deep:#1b4fd8; --ice:#dcebff; --cyan:#35d6e8;
+    --red:#ff5a4e; --amber:#ffb020; --good:#39d98a; --muted:#7e8db0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ice)}
+  canvas{display:block;position:absolute;inset:0}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:20px;background:rgba(10,16,30,.82);backdrop-filter:blur(6px);
+    z-index:10;text-align:center;padding:24px}
+  .hidden{display:none}
+  h1{font-size:clamp(38px,6.4vw,78px);letter-spacing:.06em;font-weight:800;
+    color:var(--ice);text-shadow:0 0 42px rgba(47,123,246,.55)}
+  .tag{font-size:clamp(14px,1.8vw,19px);color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+  .btn{cursor:pointer;border:1px solid rgba(220,235,255,.18);background:linear-gradient(180deg,#2f7bf6,#1b4fd8);
+    color:#fff;font-size:18px;font-weight:700;letter-spacing:.08em;padding:15px 42px;border-radius:999px;
+    box-shadow:0 14px 34px -12px rgba(47,123,246,.65), inset 0 1px 0 rgba(255,255,255,.25);
+    transition:transform .12s cubic-bezier(.16,1,.3,1)}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:scale(.97)}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;max-width:1080px}
+  .card{width:214px;padding:16px;border-radius:16px;background:var(--panel);
+    border:1px solid var(--line);cursor:pointer;text-align:left;
+    transition:transform .15s cubic-bezier(.16,1,.3,1),border-color .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-3px)}
+  .card.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan),0 18px 40px -18px rgba(53,214,232,.5)}
+  .card .cn{font-weight:800;letter-spacing:.04em;font-size:13.5px;margin-bottom:6px}
+  .card .cd{font-size:12px;color:var(--muted);line-height:1.45}
+  .card .cz{margin-top:9px;font-size:10px;letter-spacing:.16em;color:var(--cyan);text-transform:uppercase}
+  .rrow{display:flex;align-items:center;gap:0;width:min(760px,92vw);background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:12px 18px;cursor:pointer;text-align:left;
+    transition:border-color .15s,box-shadow .15s}
+  .rrow .rif{flex:1;font-size:14px;font-weight:700}
+  .rrow .rthen{flex:1;font-size:14px;color:var(--muted);text-align:right}
+  .rrow .rwire{flex:0 0 120px;height:4px;margin:0 14px;border-radius:2px;background:#233252;position:relative;overflow:hidden}
+  .rrow.sel{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan)}
+  .rrow.sel .rwire{background:linear-gradient(90deg,var(--cyan),var(--azure));box-shadow:0 0 12px rgba(53,214,232,.7)}
+  .rrow.sel .rthen{color:var(--ice)}
+  .stats{display:flex;flex-direction:column;gap:9px;font-size:16px;min-width:380px}
+  .srow{display:flex;justify-content:space-between;gap:30px;padding:9px 16px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+  .srow b{font-variant-numeric:tabular-nums}
+  .lose{color:var(--red)} .win{color:var(--good)}
+  .small{font-size:13px;color:var(--muted);max-width:560px;line-height:1.55}
+  #hint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);z-index:5;
+    background:rgba(20,31,54,.92);border:1px solid var(--line);border-radius:999px;
+    padding:9px 20px;font-size:14px;letter-spacing:.03em;color:var(--ice);
+    opacity:0;transition:opacity .35s;pointer-events:none;white-space:nowrap;
+    box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+  .otimer{font-size:12px;color:var(--muted);letter-spacing:.1em}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hint"></div>
+
+<div id="title" class="overlay">
+  <div class="tag">Аркада для тех, кто управляет производством</div>
+  <h1>РУЧНОЙ РЕЖИМ</h1>
+  <div class="small">Ты — директор. Станок греется, пресс ждёт деталей, сырьё тает, люди засыпают,
+    склад теплеет, энергощит на пределе, а рейсы горят по графику. Кликай по зонам и успевай везде.
+    Спойлер: не успеешь — и это нормально.</div>
+  <button class="btn" id="startBtn">НАЧАТЬ СМЕНУ</button>
+</div>
+
+<div id="supply" class="overlay hidden">
+  <div class="tag">Пауза снабжения</div>
+  <h1 style="font-size:clamp(24px,3.8vw,42px)">Бюджета хватит на 3 датчика</h1>
+  <div class="small">Датчик не работает за тебя — он снимает туман и предупреждает заранее.
+    Выбери, где болело сильнее.</div>
+  <div class="cards" id="sensorCards"></div>
+  <button class="btn" id="mountBtn" disabled>СМОНТИРОВАТЬ (0/3)</button>
+  <div class="otimer" id="supplyTimer"></div>
+</div>
+
+<div id="rules" class="overlay hidden">
+  <div class="tag">Инженерная пауза</div>
+  <h1 style="font-size:clamp(24px,3.8vw,42px)">Соедини датчики с действиями</h1>
+  <div class="small">Кликни по строке — протянешь кабель ЕСЛИ→ТО через щит логики.
+    Правило срабатывает само, без директора. Доступны только зоны с датчиками.</div>
+  <div style="display:flex;flex-direction:column;gap:10px" id="ruleRows"></div>
+  <button class="btn" id="wireBtn">ЗАПУСТИТЬ ЛОГИКУ (0)</button>
+  <div class="otimer" id="rulesTimer"></div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="tag">Конец смены</div>
+  <h1 style="font-size:clamp(26px,4.2vw,48px)" id="endTitle">Итоги</h1>
+  <div class="stats" id="endStats"></div>
+  <div class="small">Так работает лестница: наблюдаемость → автоматизация. Реальная платформа делает
+    то же с настоящим заводом.</div>
+  <button class="btn" id="againBtn">ЕЩЁ СМЕНА</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- canvas ---------- */
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  fitCamera();
+  idleFrames = 0;
+}
+window.addEventListener('resize', resize);
+
+/* ---------- palette ---------- */
+const PAL = {
+  bg:'#0e1526', tileA:'#15223c', tileB:'#131e35', road:'#0d1220', roadLine:'#31405f',
+  azure:'#2f7bf6', deep:'#1b4fd8', ice:'#dcebff', cyan:'#35d6e8',
+  red:'#ff5a4e', amber:'#ffb020', good:'#39d98a', muted:'#7e8db0',
+  fog:'#3a445c', fogDark:'#2b3348', gold:'#ffd24a'
+};
+
+/* ---------- audio ---------- */
+let AC = null, master = null;
+function audioInit(){
+  if (AC) return;
+  try{
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.2; master.connect(AC.destination);
+  }catch(e){ AC = null; }
+}
+function beep(f, d = 0.08, type = 'sine', v = 0.5, slide = 0){
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = f;
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, f + slide), AC.currentTime + d);
+  g.gain.setValueAtTime(v, AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + d);
+  o.connect(g); g.connect(master); o.start(); o.stop(AC.currentTime + d);
+}
+let lastCoinS = 0;
+const sCoin   = () => { const n = performance.now(); if (n - lastCoinS < 180) return; lastCoinS = n; beep(880,.05,'sine',.22); setTimeout(()=>beep(1320,.04,'sine',.15),36); };
+const sAlarm  = () => { beep(640,.09,'square',.2); setTimeout(()=>beep(500,.09,'square',.2),110); };
+const sBreak  = () => { beep(85,.3,'sawtooth',.5,-40); beep(160,.18,'square',.25,-60); };
+const sFix    = () => { beep(520,.06,'triangle',.3); setTimeout(()=>beep(780,.09,'triangle',.26),60); };
+const sPrevent= () => { [660,830,990].forEach((f,i)=>setTimeout(()=>beep(f,.08,'triangle',.28), i*70)); };
+const sPhone  = () => { beep(1250,.045,'square',.12); setTimeout(()=>beep(1250,.045,'square',.12),85); };
+const sUnlock = () => { [440,550,660,880].forEach((f,i)=>setTimeout(()=>beep(f,.09,'sine',.24), i*85)); };
+const sAuto   = () => { beep(990,.05,'triangle',.2); setTimeout(()=>beep(1480,.06,'triangle',.16),50); };
+const sTruck  = () => { beep(180,.14,'square',.2); setTimeout(()=>beep(240,.1,'square',.15),120); };
+
+/* ---------- iso camera ---------- */
+const TW = 68, TH = 34, GRID = 18;
+let camScale = 1, camX = 0, camY = 0;
+const isoPt = (gx, gy) => ({ x:(gx - gy) * TW/2, y:(gx + gy) * TH/2 });
+function worldToScreen(gx, gy){ const p = isoPt(gx, gy); return { x: camX + p.x * camScale, y: camY + p.y * camScale }; }
+function screenToGrid(sx, sy){
+  const x = (sx - camX) / camScale, y = (sy - camY) / camScale;
+  return { gx:(x/(TW/2) + y/(TH/2))/2, gy:(y/(TH/2) - x/(TW/2))/2 };
+}
+function fitCamera(){
+  camScale = Math.max(.45, Math.min(1.1, Math.min(W/1400, (H-70)/900)));
+  const c = isoPt(GRID/2, GRID/2);
+  camX = W/2 - c.x * camScale;
+  camY = H*0.52 - c.y * camScale;
+}
+
+/* ---------- game state ---------- */
+const ACT1_LEN = 130, ACT2_LEN = 55, ACT3_LEN = 60, SUPPLY_LEN = 15, RULES_LEN = 20;
+let mode = 'title';                 // title | play | supply | play2 | rules | play3 | end
+let gameT = 0, phaseT = 0;
+let money = 500, comboMult = 1, comboN = 0, comboUntil = 0;
+let accidents = 0, prevented = 0, autoActs = 0;
+let stock = 30, tripsOnTime = 0, tripsLate = 0;
+let powerOut = false;
+const stat = { 1:{earned:0, lost:0}, 2:{earned:0, lost:0}, 3:{earned:0, lost:0} };
+let shake = 0, hitstop = 0;
+let supplyLeft = 0, rulesLeft = 0;
+
+const ZONES = [
+  { id:'machine', name:'СТАНОК «АТЛАНТ»', gx:3.0,  gy:3.0,  unlock:0,   kind:'machine',
+    gauge:'T° СТАНКА', sensorName:'ТЕРМОДАТЧИК СТАНКА', sensorDesc:'Перегрев виден за пять секунд до дыма.' },
+  { id:'hopper',  name:'БУНКЕР СЫРЬЯ',    gx:8.0,  gy:2.5,  unlock:15,  kind:'hopper',
+    gauge:'СЫРЬЁ', sensorName:'ДАТЧИК УРОВНЯ БУНКЕРА', sensorDesc:'Остаток на виду — линия не встанет «внезапно».' },
+  { id:'dock',    name:'ПОГРУЗОЧНЫЙ ДОК', gx:12.0, gy:8.0,  unlock:30,  kind:'dock',
+    gauge:'ГРАФИК', sensorName:'GPS-ТЕЛЕМАТИКА РЕЙСОВ', sensorDesc:'График и машины видны — срыв заметен заранее.' },
+  { id:'press',   name:'ПРЕСС «ЦИКЛОП»',  gx:3.0,  gy:7.5,  unlock:50,  kind:'press',
+    gauge:'ИЗНОС', sensorName:null, sensorDesc:null },
+  { id:'worker',  name:'ПОСТ СБОРКИ',     gx:8.0,  gy:7.0,  unlock:68,  kind:'worker',
+    gauge:'СИЛЫ', sensorName:null, sensorDesc:null },
+  { id:'fridge',  name:'СКЛАД-ХОЛОД',     gx:3.0,  gy:12.0, unlock:88,  kind:'fridge',
+    gauge:'T° СКЛАДА', sensorName:'ТЕРМОДАТЧИК СКЛАДА', sensorDesc:'Дрейф холода виден сразу — партия не сгниёт молча.' },
+  { id:'power',   name:'ЭНЕРГОЩИТ',       gx:8.0,  gy:12.0, unlock:105, kind:'power',
+    gauge:'НАГРУЗКА', sensorName:'СЧЁТЧИК ЭНЕРГИИ', sensorDesc:'Пик виден до того, как выбьет автомат.' }
+];
+ZONES.forEach(z => Object.assign(z, {
+  on:false, unlockAt:null, value:0, failed:false, lookUntil:0, sensor:false, warned:false, spawnT:0
+}));
+const Z = Object.fromEntries(ZONES.map(z => [z.id, z]));
+const ZONES_ORDERED = [...ZONES].sort((a,b) => (a.gx+a.gy) - (b.gx+b.gy));
+const HUB = { gx:11.0, gy:12.2 }; /* щит логики (акт 3) */
+
+/* ---------- транспортный двор ---------- */
+/* дорога: колонна gx 14..16 + подъезд к доку по gy 8..9 */
+const ROAD_PATH = [ {gx:13.4, gy:8.8}, {gx:15.5, gy:8.8}, {gx:15.5, gy:1.9} ]; /* док → развилка → ворота */
+const TRIP_TIME = 9, TRIP_WINDOW = 20, LOAD_TIME = 4, TRIP_STOCK = 25;
+const trucks = [
+  { id:0, phase:'load', t:LOAD_TIME, p:0, deadline:0, delivered:false, park:0 },
+  { id:1, phase:'load', t:LOAD_TIME+8, p:0, deadline:0, delivered:false, park:1 }
+];
+function pathLen(){ let L=0; for(let i=1;i<ROAD_PATH.length;i++){ L+=Math.hypot(ROAD_PATH[i].gx-ROAD_PATH[i-1].gx, ROAD_PATH[i].gy-ROAD_PATH[i-1].gy); } return L; }
+const PATH_L = pathLen();
+function pathPos(f){ /* f 0..1 вдоль пути */
+  let d = f * PATH_L;
+  for (let i=1;i<ROAD_PATH.length;i++){
+    const a=ROAD_PATH[i-1], b=ROAD_PATH[i];
+    const seg = Math.hypot(b.gx-a.gx, b.gy-a.gy);
+    if (d <= seg) { const k=d/seg; return { gx:a.gx+(b.gx-a.gx)*k, gy:a.gy+(b.gy-a.gy)*k }; }
+    d -= seg;
+  }
+  return { ...ROAD_PATH[ROAD_PATH.length-1] };
+}
+function truckPos(tr){
+  if (tr.phase !== 'route'){ return { gx:13.4 + tr.park*0.2, gy:8.8 + tr.park*1.1 }; }
+  const f = tr.p < 0.5 ? tr.p*2 : (1 - tr.p)*2; /* туда и обратно */
+  return pathPos(f);
+}
+function dispatchTruck(auto){
+  const tr = trucks.filter(t => t.phase==='ready' && stock >= TRIP_STOCK)
+                   .sort((a,b) => a.deadline - b.deadline)[0];
+  if (!tr) return false;
+  stock -= TRIP_STOCK;
+  tr.phase = 'route'; tr.p = 0; tr.delivered = false;
+  tr.onTime = gameT <= tr.deadline;
+  sTruck();
+  const s = worldToScreen(13.4, 8.8);
+  addFloat(s.x, s.y-60*camScale, auto ? 'АВТО: РЕЙС' : 'РЕЙС ПОШЁЛ', auto ? PAL.cyan : PAL.ice, 14);
+  return true;
+}
+function updateTrucks(dt){
+  if (!Z.dock.on) return;
+  for (const tr of trucks){
+    switch (tr.phase){
+      case 'load':
+        tr.t -= dt;
+        if (tr.t <= 0){ tr.phase = 'ready'; if (!tr.deadline || tr.deadline < gameT) tr.deadline = gameT + TRIP_WINDOW*0.7; }
+        break;
+      case 'ready': break;
+      case 'route':
+        tr.p += dt / TRIP_TIME;
+        if (!tr.delivered && tr.p >= 0.5){
+          tr.delivered = true;
+          const g = worldToScreen(15.5, 1.9);
+          if (tr.onTime){ tripsOnTime++; addMoney(180); addFloat(g.x, g.y-30, 'РЕЙС ВОВРЕМЯ  +180 ₽', PAL.good, 16); if (Math.random()<0.5) say('ДИСПЕТЧЕР', 'Доставили вовремя!'); }
+          else { tripsLate++; addMoney(90); addFloat(g.x, g.y-30, 'С ОПОЗДАНИЕМ  +90 ₽', PAL.amber, 15); }
+          sCoin();
+        }
+        if (tr.p >= 1){ tr.phase = 'load'; tr.t = LOAD_TIME; tr.deadline = gameT + TRIP_WINDOW; }
+        break;
+    }
+    /* срыв графика: дедлайн прошёл, а машина так и не уехала */
+    if (tr.phase !== 'route' && tr.deadline && gameT > tr.deadline){
+      accidents++; tripsLate++;
+      addMoney(-160);
+      const s = worldToScreen(13.4, 8.8);
+      addFloat(s.x, s.y-80*camScale, 'РЕЙС СОРВАН  −160 ₽', PAL.red, 17);
+      sBreak(); shake = 4; hitstop = 0.06;
+      tr.deadline = gameT + TRIP_WINDOW;             /* график сдвигается */
+      if (tr.phase === 'ready' && stock < TRIP_STOCK){ tr.phase='load'; tr.t = LOAD_TIME*0.5; }
+      hintOnce('trip', 'График сорван — следи за доком!');
+      say('ДИСПЕТЧЕР', 'Рейс сорван, клиент в ярости!');
+    }
+  }
+}
+function dockDeadlineLeft(){
+  let m = Infinity;
+  for (const tr of trucks) if (tr.phase !== 'route' && tr.deadline) m = Math.min(m, tr.deadline - gameT);
+  return m;
+}
+
+/* ---------- правила ЕСЛИ→ТО (акт 3) ---------- */
+const RULES = [
+  { id:'r_cool',  zone:'machine', ifTxt:'T° станка ≥ 80%',  thenTxt:'включить обдув',
+    check:() => Z.machine.on && !Z.machine.failed && Z.machine.value >= 0.8,
+    run(){ Z.machine.value = 0.12; } },
+  { id:'r_order', zone:'hopper',  ifTxt:'сырьё ≤ 20%',       thenTxt:'автозаказ (−40 ₽)',
+    check:() => Z.hopper.on && Z.hopper.value >= 0.8,
+    run(){ Z.hopper.value = 0; addMoney(-40); } },
+  { id:'r_chill', zone:'fridge',  ifTxt:'T° склада ≥ 70%',   thenTxt:'усилить холод',
+    check:() => Z.fridge.on && Z.fridge.value >= 0.7,
+    run(){ Z.fridge.value = 0.15; Z.fridge.failed = false; } },
+  { id:'r_grid',  zone:'power',   ifTxt:'нагрузка ≥ 80%',    thenTxt:'развести нагрузку',
+    check:() => Z.power.on && !powerOut && Z.power.value >= 0.8,
+    run(){ Z.power.value = 0.25; } },
+  { id:'r_go',    zone:'dock',    ifTxt:'рейс горит (< 5 с)', thenTxt:'автодиспетчер',
+    check:() => Z.dock.on && trucks.some(t => t.phase==='ready' && stock >= TRIP_STOCK && (t.deadline - gameT) <= 5),
+    run(){ dispatchTruck(true); } }
+];
+RULES.forEach(r => { r.active = false; r.cd = 0; });
+const pulses = []; /* импульсы по кабелям */
+
+function updateRules(dt){
+  if (mode !== 'play3') return;
+  for (const r of RULES){
+    if (!r.active) continue;
+    r.cd -= dt;
+    if (r.cd > 0) continue;
+    if (r.check()){
+      r.run(); r.cd = 1.4; autoActs++; r.lastFire = gameT;
+      const z = Z[r.zone], s = worldToScreen(z.gx, z.gy);
+      addFloat(s.x, s.y - 92*camScale, 'АВТО', PAL.cyan, 14);
+      pulses.push({ zone:r.zone, t:0 });
+      sAuto();
+      if (Math.random() < 0.25) say('ЩИТ ЛОГИКИ', 'Обработал сам, директор.');
+    }
+  }
+  for (let i = pulses.length-1; i >= 0; i--){
+    pulses[i].t += dt * 1.8;
+    if (pulses[i].t >= 1) pulses.splice(i, 1);
+  }
+}
+
+/* ---------- частицы и флоатеры ---------- */
+const parts = [], floats = [];
+function addFloat(sx, sy, txt, color, size = 16){ floats.push({ x:sx, y:sy, txt, color, size, life:1.4 }); }
+function puff(sx, sy, n, color, spread = 26, up = -30){
+  for (let i=0;i<n;i++) parts.push({ t:'dust', x:sx+(Math.random()-.5)*spread, y:sy+(Math.random()-.5)*10,
+    vx:(Math.random()-.5)*40, vy:up*Math.random(), life:.6+Math.random()*.5, size:3+Math.random()*4, color });
+}
+function smokeAt(sx, sy){
+  parts.push({ t:'smoke', x:sx+(Math.random()-.5)*14, y:sy, vx:(Math.random()-.5)*12, vy:-34-Math.random()*20,
+    life:1.6, size:5+Math.random()*6, color:'#5d6a85' });
+}
+function coinTo(sx, sy, delay = 0){
+  parts.push({ t:'coin', x:sx, y:sy, x0:sx, y0:sy, cx:sx+(Math.random()-.5)*120, cy:sy-140-Math.random()*80, p:-delay, life:1 });
+}
+function zzzAt(sx, sy){
+  parts.push({ t:'zzz', x:sx+(Math.random()-.5)*10, y:sy, vx:8, vy:-22, life:1.6, size:13, color:PAL.muted });
+}
+
+/* ---------- аркадные реплики (рация директора) ---------- */
+const quips = []; let quipCur = null; let quipIdle = 0;
+function say(who, txt){ if (quips.length > 4) return; quips.push({ who, txt }); }
+const IDLE_QUIPS = [
+  ['БУХГАЛТЕРИЯ', 'Где прибыль за смену?'],
+  ['ДИРЕКТОР', 'Кофе. Срочно.'],
+  ['ОХРАНА', 'На проходной всё тихо.'],
+  ['БРИГАДИР', 'Люди держатся. Пока.'],
+  ['ДИСПЕТЧЕР', 'Жду график, шеф.'],
+  ['СНАБЖЕНЕЦ', 'Поставщик снова торгуется…']
+];
+function updateQuips(dt){
+  if (quipCur){ quipCur.t += dt; if (quipCur.t > 3.2) quipCur = null; }
+  if (!quipCur && quips.length){ quipCur = { ...quips.shift(), t:0 }; }
+  quipIdle += dt;
+  if (quipIdle > 13){
+    quipIdle = 0;
+    if (!quips.length && problemCount() === 0){
+      const q = IDLE_QUIPS[Math.floor(Math.random()*IDLE_QUIPS.length)];
+      say(q[0], q[1]);
+    }
+  }
+}
+function drawQuip(){
+  if (!quipCur) return;
+  const a = clamp(Math.min(quipCur.t*4, (3.2-quipCur.t)*3), 0, 1);
+  ctx.globalAlpha = a;
+  ctx.font = '700 13px system-ui'; ctx.textAlign = 'left';
+  const tw = Math.max(ctx.measureText(quipCur.txt).width, 90) + 28;
+  const bx = 26, bh = 52, by = H - 148, bw = Math.min(tw, W*0.6);
+  ctx.fillStyle = 'rgba(20,31,54,.95)';
+  roundRect(bx, by, bw, bh, 12); ctx.fill();
+  ctx.strokeStyle = 'rgba(53,214,232,.35)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx+18, by+bh); ctx.lineTo(bx+32, by+bh); ctx.lineTo(bx+16, by+bh+13); ctx.closePath();
+  ctx.fillStyle = 'rgba(20,31,54,.95)'; ctx.fill();
+  ctx.fillStyle = PAL.cyan; ctx.font = '800 10px system-ui';
+  ctx.fillText(quipCur.who, bx+14, by+18);
+  ctx.fillStyle = PAL.ice; ctx.font = '700 13px system-ui';
+  ctx.fillText(quipCur.txt, bx+14, by+38);
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- подсказки ---------- */
+const hintEl = document.getElementById('hint');
+let hintTimer = null;
+function hint(txt, dur = 3200){
+  hintEl.textContent = txt; hintEl.style.opacity = 1;
+  clearTimeout(hintTimer); hintTimer = setTimeout(()=>hintEl.style.opacity = 0, dur);
+}
+const hintedOnce = {};
+function hintOnce(key, txt, dur){ if (hintedOnce[key]) return; hintedOnce[key] = 1; hint(txt, dur); }
+
+/* ---------- утилиты ---------- */
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+const lerp = (a,b,t) => a+(b-a)*t;
+function fmtMoney(v){ return Math.round(v).toLocaleString('ru-RU') + ' ₽'; }
+function fmtTime(s){ s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function phase(){ return mode==='play3' ? 3 : (mode==='play2' ? 2 : 1); }
+function actLen(){ return mode==='play3' ? ACT3_LEN : (mode==='play2' ? ACT2_LEN : ACT1_LEN); }
+function difficulty(){
+  if (mode==='play') return lerp(1, 2.2, clamp(phaseT/ACT1_LEN, 0, 1));
+  return mode==='play3' ? 2.4 : 2.2;
+}
+function zoneVisible(z){ return z.sensor || gameT < z.lookUntil; }
+function zoneProblem(z){
+  if (!z.on) return null;
+  switch (z.kind){
+    case 'machine': return powerOut ? 'НЕТ ПИТАНИЯ' : (z.failed ? 'АВАРИЯ' : (Z.hopper.on && Z.hopper.value>=1 ? 'НЕТ СЫРЬЯ' : null));
+    case 'press':   return powerOut ? 'НЕТ ПИТАНИЯ' : (z.failed ? 'АВАРИЯ' : (!machineFlow() ? 'НЕТ ДЕТАЛЕЙ' : null));
+    case 'hopper':  return z.value>=1 ? 'ПУСТО' : null;
+    case 'worker':  return z.failed ? 'СПИТ' : (powerOut ? 'НЕТ ПИТАНИЯ' : (!chainFlow() ? 'НЕТ ПОТОКА' : null));
+    case 'fridge':  return z.value>=0.85 ? 'ТЕПЛЕЕТ' : null;
+    case 'power':   return powerOut ? 'ВЫБИЛО АВТОМАТ' : null;
+    case 'dock': {
+      const ready = trucks.some(t => t.phase==='ready');
+      if (ready && stock < TRIP_STOCK) return 'НЕТ ГРУЗА';
+      if (dockDeadlineLeft() < 6) return 'РЕЙС ГОРИТ';
+      return null;
+    }
+  }
+  return null;
+}
+function problemCount(){ let n=0; for (const z of ZONES){ if (z.on && (z.failed || zoneProblem(z))) n++; } return n; }
+
+/* ---------- производственная цепочка ---------- */
+function machineFlow(){ return Z.machine.on && !Z.machine.failed && !powerOut && !(Z.hopper.on && Z.hopper.value>=1); }
+function pressFlow(){ return Z.press.on && !Z.press.failed && !powerOut && machineFlow(); }
+function chainFlow(){ return Z.press.on ? pressFlow() : machineFlow(); }
+function zoneProducing(z){
+  if (!z.on) return false;
+  switch (z.kind){
+    case 'machine': return machineFlow();
+    case 'press':   return pressFlow();
+    case 'worker':  return !z.failed && !powerOut && chainFlow();
+    case 'fridge':  return z.value < 0.85;
+    default: return false;
+  }
+}
+function zoneRate(z){
+  switch (z.kind){
+    case 'machine': return 3; case 'press': return 3; case 'worker': return 4; case 'fridge': return 2;
+    default: return 0;
+  }
+}
+function addMoney(v){
+  money += v;
+  const p = phase();
+  if (v >= 0) stat[p].earned += v; else stat[p].lost += -v;
+}
+
+/* ---------- действия директора ---------- */
+function actionFor(z){
+  switch (z.kind){
+    case 'machine':
+      if (powerOut) return null;
+      if (z.failed) return { label:'ЧИНЮ…', dur:3.2, kind:'repair', cost:80 };
+      if (z.value >= 0.25) return { label:'ОБДУВ…', dur:1.0, kind:'cool', preventive:z.value>=0.7 };
+      return null;
+    case 'press':
+      if (powerOut) return null;
+      if (z.failed) return { label:'ЧИНЮ…', dur:2.6, kind:'repair', cost:60 };
+      if (z.value >= 0.3) return { label:'СМАЗЫВАЮ…', dur:1.1, kind:'cool', preventive:z.value>=0.7 };
+      return null;
+    case 'hopper':
+      if (z.value >= 1) return { label:'ЗАКАЗЫВАЮ…', dur:1.5, kind:'order', cost:40 };
+      if (z.value >= 0.6) return { label:'ЗАКАЗЫВАЮ…', dur:1.2, kind:'order', cost:40, preventive:z.value>=0.7 };
+      return null;
+    case 'worker':
+      if (z.failed) return { label:'БУЖУ…', dur:1.0, kind:'wake' };
+      if (z.value >= 0.6) return { label:'КОФЕ…', dur:0.8, kind:'coffee', preventive:z.value>=0.7 };
+      return null;
+    case 'fridge':
+      if (z.value >= 0.3) return { label:'ОХЛАЖДАЮ…', dur:1.5, kind:'chill', preventive:z.value>=0.7 && !z.failed };
+      return null;
+    case 'power':
+      if (powerOut) return { label:'СБРАСЫВАЮ…', dur:2.0, kind:'resetPower' };
+      if (z.value >= 0.6) return { label:'РАЗВОЖУ НАГРУЗКУ…', dur:1.2, kind:'balance', preventive:z.value>=0.7 };
+      return null;
+    case 'dock':
+      if (trucks.some(t => t.phase==='ready') && stock >= TRIP_STOCK)
+        return { label:'ОТПРАВЛЯЮ…', dur:0.8, kind:'dispatch', preventive:dockDeadlineLeft()<6 };
+      return null;
+  }
+  return null;
+}
+function completeFix(z, act){
+  const s = worldToScreen(z.gx, z.gy);
+  if (act.cost) { addMoney(-act.cost); addFloat(s.x, s.y-70, '−'+act.cost+' ₽', PAL.amber, 15); }
+  switch (act.kind){
+    case 'repair': z.failed=false; z.value=0.08; break;
+    case 'cool':   z.value=0.08; break;
+    case 'order':  z.value=0; addFloat(s.x, s.y-96, '+СЫРЬЁ', PAL.cyan, 15); break;
+    case 'wake':   z.failed=false; z.value=0.05; break;
+    case 'coffee': z.value=0.05; break;
+    case 'chill':  z.value=0.12; z.failed=false; break;
+    case 'balance': z.value=0.25; break;
+    case 'resetPower': powerOut=false; z.failed=false; z.value=0.2; addFloat(s.x, s.y-96, 'ПИТАНИЕ ЕСТЬ', PAL.good, 15); break;
+    case 'dispatch': if (!dispatchTruck(false)){ act.preventive = false; addFloat(s.x, s.y-96, 'РЕЙС НЕ УШЁЛ', PAL.amber, 14); } break;
+  }
+  puff(s.x, s.y-30, 10, PAL.cyan, 40);
+  if (act.preventive){
+    prevented++; comboN++; comboUntil = gameT + 6; comboMult = Math.min(3, 1 + comboN*0.5);
+    addFloat(s.x, s.y-52, 'ПРЕДОТВРАЩЕНО', PAL.good, 17);
+    addFloat(s.x, s.y-30, '+40 ₽', PAL.gold, 14);
+    addMoney(40); sPrevent();
+  } else {
+    addFloat(s.x, s.y-52, 'ГОТОВО', PAL.good, 15); sFix();
+  }
+}
+
+/* ---------- отказы (ущерб усилен) ---------- */
+function failZone(z){
+  const s = worldToScreen(z.gx, z.gy);
+  switch (z.kind){
+    case 'machine':
+      z.failed = true; accidents++;
+      addMoney(-220); addFloat(s.x, s.y-70, 'АВАРИЯ  −220 ₽', PAL.red, 19);
+      sBreak(); shake = 4; hitstop = 0.06;
+      puff(s.x, s.y-40, 16, PAL.red, 60, -60);
+      hintOnce('break', 'Дым — уже поздно. Реагируй раньше!');
+      say('МАСТЕР', 'Станок встал, шеф!');
+      break;
+    case 'press':
+      z.failed = true; accidents++;
+      addMoney(-180); addFloat(s.x, s.y-70, 'КЛИН ПРЕССА  −180 ₽', PAL.red, 18);
+      sBreak(); shake = 4; hitstop = 0.06;
+      puff(s.x, s.y-40, 12, PAL.red, 50, -50);
+      say('МАСТЕР', 'Пресс заклинило!');
+      break;
+    case 'hopper':
+      addFloat(s.x, s.y-70, 'БУНКЕР ПУСТ', PAL.amber, 17);
+      sAlarm(); hintOnce('hungry', 'Линия встала — следи за бункером!');
+      say('СНАБЖЕНЕЦ', 'Сырьё кончилось!');
+      break;
+    case 'worker':
+      z.failed = true;
+      addFloat(s.x, s.y-70, 'УСНУЛ', PAL.amber, 17); sAlarm();
+      say('БРИГАДИР', 'Сборщик уснул на посту…');
+      break;
+    case 'fridge':
+      z.failed = true; accidents++;
+      stock = Math.floor(stock * 0.5);
+      addMoney(-260); addFloat(s.x, s.y-70, 'ПАРТИЯ ИСПОРЧЕНА  −260 ₽', PAL.red, 18);
+      addFloat(s.x, s.y-46, 'ГРУЗ УПОЛОВИНЕН', PAL.amber, 14);
+      sBreak(); shake = 4; hitstop = 0.06;
+      z.value = 0.8;
+      say('КЛАДОВЩИК', 'Партия испорчена, шеф!');
+      break;
+    case 'power':
+      powerOut = true; z.failed = true; accidents++;
+      addMoney(-180); addFloat(s.x, s.y-70, 'ВЫБИЛО АВТОМАТ  −180 ₽', PAL.red, 19);
+      sBreak(); shake = 8; hitstop = 0.09;
+      hintOnce('grid', 'Весь завод встал — сбрось автомат!');
+      say('ЭНЕРГЕТИК', 'Автомат выбило! Всё стоит!');
+      break;
+  }
+}
+
+/* ---------- update ---------- */
+let coinAcc = 0, alarmAcc = 0;
+function update(dt){
+  gameT += dt;
+  const d = difficulty();
+
+  /* открытие зон (только в акте 1) */
+  if (mode === 'play'){
+    for (const z of ZONES){
+      if (!z.on && phaseT >= z.unlock){
+        z.on = true; z.unlockAt = gameT; z.value = z.kind==='hopper' ? 0.35 : (z.kind==='dock'||z.kind==='power' ? 0.2 : 0.45);
+        if (z.kind === 'dock'){ for (const tr of trucks){ tr.deadline = gameT + TRIP_WINDOW + tr.id*8; } }
+        sUnlock();
+        hint('НОВАЯ ЗОНА: ' + z.name);
+        const s = worldToScreen(z.gx, z.gy);
+        puff(s.x, s.y, 14, PAL.muted, 70, -40);
+      }
+    }
+  }
+
+  /* рампы состояния */
+  for (const z of ZONES){
+    if (!z.on) continue;
+    const s = worldToScreen(z.gx, z.gy);
+    switch (z.kind){
+      case 'machine':
+        if (!z.failed && zoneProducing(z)){
+          z.value = clamp(z.value + 0.026 * d * dt, 0, 1);
+          if (z.value >= 1) failZone(z);
+        }
+        if (!z.failed && z.value >= 0.88){ z.spawnT -= dt; if (z.spawnT<=0){ z.spawnT=.14; smokeAt(s.x+14*camScale, s.y-58*camScale); } }
+        if (z.failed){ z.spawnT -= dt; if (z.spawnT<=0){ z.spawnT=.09; smokeAt(s.x+(Math.random()-.5)*30, s.y-50*camScale); } }
+        break;
+      case 'press':
+        if (!z.failed && zoneProducing(z)){
+          z.value = clamp(z.value + 0.018 * d * dt, 0, 1);
+          if (z.value >= 1) failZone(z);
+        }
+        if (z.failed){ z.spawnT -= dt; if (z.spawnT<=0){ z.spawnT=.12; smokeAt(s.x+(Math.random()-.5)*24, s.y-46*camScale); } }
+        break;
+      case 'hopper':
+        if (machineFlow()){ /* сырьё уходит только когда станок реально работает */
+          z.value = clamp(z.value + 0.020 * d * dt, 0, 1);
+        }
+        if (z.value >= 1 && !z.failed){ z.failed = true; failZone(z); }
+        if (z.value < 1) z.failed = false;
+        break;
+      case 'worker':
+        if (!z.failed){
+          z.value = clamp(z.value + 0.024 * d * (powerOut ? 0.4 : 1) * dt, 0, 1);
+          if (z.value >= 1) failZone(z);
+        } else { z.spawnT -= dt; if (z.spawnT<=0){ z.spawnT=.55; zzzAt(s.x+10, s.y-56*camScale); } }
+        break;
+      case 'fridge':
+        /* выбитый автомат греет склад — взаимосвязь */
+        z.value = clamp(z.value + 0.020 * d * (0.6 + Math.random()*0.8) * (powerOut ? 1.7 : 1) * dt, 0, 1);
+        if (z.value >= 1 && !z.failed) failZone(z);
+        if (z.value >= 0.85){ addMoney(-8*dt); stock = Math.max(0, stock - 1.2*dt); }
+        break;
+      case 'power':
+        if (!powerOut){
+          const producers = ZONES.filter(zz => zz.on && zoneProducing(zz) && zz.kind!=='fridge').length;
+          z.value = clamp(z.value + (0.008 + 0.007*producers) * d * dt, 0, 1);
+          if (z.value >= 1 && !z.failed) failZone(z);
+        }
+        break;
+    }
+    if (z.sensor){
+      const warnNow = z.kind==='dock' ? (dockDeadlineLeft() < 8 && dockDeadlineLeft() >= 0) : (z.value >= 0.7 && !z.failed);
+      if (warnNow && !z.warned){ z.warned = true; sAlarm(); addFloat(s.x, s.y-84, 'ТРЕВОГА', PAL.amber, 15); }
+      if (!warnNow) z.warned = false;
+    }
+  }
+
+  /* транспорт, правила, реплики */
+  updateTrucks(dt);
+  updateRules(dt);
+  updateQuips(dt);
+
+  /* готовая продукция */
+  let mk = 0;
+  if (machineFlow()) mk += 1.0;
+  if (pressFlow()) mk += 1.0;
+  if (Z.worker.on && zoneProducing(Z.worker)) mk += 1.2;
+  stock = clamp(stock + mk*dt, 0, 99);
+
+  /* доход и упущенное */
+  let rate = 1;
+  for (const z of ZONES){
+    if (z.kind==='fridge' || z.kind==='dock' || z.kind==='power' || z.kind==='hopper') continue;
+    if (zoneProducing(z)) rate += zoneRate(z); else if (z.on) stat[phase()].lost += zoneRate(z)*dt;
+  }
+  if (Z.fridge.on && !zoneProducing(Z.fridge)) stat[phase()].lost += zoneRate(Z.fridge)*dt;
+  if (gameT > comboUntil){ comboMult = 1; comboN = 0; }
+  addMoney(rate * comboMult * dt);
+
+  /* монеты */
+  coinAcc += dt;
+  if (coinAcc > 1.2){
+    coinAcc = 0;
+    const prod = ZONES.filter(zoneProducing);
+    if (prod.length){
+      const z = prod[Math.floor(Math.random()*prod.length)];
+      const s = worldToScreen(z.gx, z.gy);
+      for (let i = 0; i < 3; i++) coinTo(s.x, s.y - 60*camScale, i * 0.45);
+      sCoin();
+    }
+  }
+
+  /* телефон */
+  const pc = problemCount();
+  if (pc > 0){
+    alarmAcc += dt;
+    const every = clamp(2.6 - pc*0.5, 0.9, 2.6);
+    if (alarmAcc > every){ alarmAcc = 0; sPhone(); }
+  } else alarmAcc = 0;
+
+  /* директор */
+  if (dir.fixing){
+    const f = dir.fixing;
+    f.t += dt;
+    if (f.t >= f.act.dur){ completeFix(f.zone, f.act); dir.fixing = null; }
+  } else {
+    const dx = dir.tx - dir.gx, dy = dir.ty - dir.gy;
+    const dist = Math.hypot(dx, dy);
+    if (dist > 0.05){
+      const sp = 3.6 * dt;
+      const k = Math.min(1, sp/dist);
+      dir.gx += dx*k; dir.gy += dy*k;
+      dir.step += dt*10; dir.face = (dx - dy) >= 0 ? 1 : -1;
+      if (Math.random() < dt*8){
+        const s = worldToScreen(dir.gx, dir.gy);
+        puff(s.x, s.y+4, 1, '#33415f', 8, -6);
+      }
+    } else if (dir.targetZone){
+      arriveAt(dir.targetZone); dir.targetZone = null;
+    }
+  }
+
+  /* фазовые таймеры */
+  phaseT += dt;
+  if (mode === 'play'  && phaseT >= ACT1_LEN) openSupply();
+  else if (mode === 'play2' && phaseT >= ACT2_LEN) openRules();
+  else if (mode === 'play3' && phaseT >= ACT3_LEN) endGame();
+
+  /* сюжетные подсказки */
+  if (mode === 'play'){
+    if (phaseT > 2)  hintOnce('h1', 'Кликни по станку — проверь его!');
+    if (phaseT > 34) hintOnce('hDock', 'Док открыт — отправляй рейсы!');
+    if (phaseT > 58) hintOnce('h2', 'Подойди к зоне — взгляни внутрь.');
+    if (phaseT > 110) hintOnce('h3', 'Не успеваешь? Это нормально.');
+  }
+  if (mode === 'play2'){
+    if (phaseT > 3) hintOnce('h4', 'Жёлтая тревога? Успей до аварии!');
+  }
+  if (mode === 'play3'){
+    if (phaseT > 3) hintOnce('h5', 'Логика работает — лови исключения!');
+  }
+
+  /* частицы */
+  for (let i = parts.length-1; i >= 0; i--){
+    const p = parts[i];
+    if (p.t === 'coin'){
+      p.p += dt*1.6;
+      if (p.p >= 1){ parts.splice(i,1); moneyPulse = 1; continue; }
+      if (p.p < 0) continue;
+      const t = p.p, mt = 1-t;
+      const ex = W/2, ey = 34;
+      p.x = mt*mt*p.x0 + 2*mt*t*p.cx + t*t*ex;
+      p.y = mt*mt*p.y0 + 2*mt*t*p.cy + t*t*ey;
+      continue;
+    }
+    p.life -= dt;
+    if (p.life <= 0){ parts.splice(i,1); continue; }
+    p.x += (p.vx||0)*dt; p.y += (p.vy||0)*dt;
+    if (p.t === 'smoke'){ p.size += dt*10; p.vy *= (1 - dt*0.4); }
+  }
+  for (let i = floats.length-1; i >= 0; i--){
+    const f = floats[i]; f.life -= dt; f.y -= dt*26;
+    if (f.life <= 0) floats.splice(i,1);
+  }
+
+  shake = Math.max(0, shake - dt*26);
+}
+
+const dir = { gx:8, gy:9.5, tx:8, ty:9.5, targetZone:null, fixing:null, step:0, face:1 };
+
+function arriveAt(z){
+  const wasVisible = zoneVisible(z);
+  z.lookUntil = gameT + 3;
+  const act = actionFor(z);
+  const s = worldToScreen(z.gx, z.gy);
+  if (act){
+    if (act.preventive && !wasVisible) act.preventive = false;
+    dir.fixing = { zone:z, act, t:0 };
+  } else {
+    const prob = zoneProblem(z);
+    if (prob === 'НЕТ СЫРЬЯ') addFloat(s.x, s.y-56, 'СЫРЬЁ КОНЧИЛОСЬ — К БУНКЕРУ!', PAL.amber, 14);
+    else if (prob === 'НЕТ ДЕТАЛЕЙ') addFloat(s.x, s.y-56, 'ЖДЁТ СТАНОК — ЧИНИ ЕГО!', PAL.amber, 14);
+    else if (prob === 'НЕТ ПОТОКА') addFloat(s.x, s.y-56, 'ЛИНИЯ ВЫШЕ ПО ЦЕПОЧКЕ СТОИТ', PAL.amber, 13);
+    else if (prob === 'НЕТ ПИТАНИЯ') addFloat(s.x, s.y-56, 'СБРОСЬ ЭНЕРГОЩИТ!', PAL.amber, 14);
+    else if (prob === 'НЕТ ГРУЗА') addFloat(s.x, s.y-56, 'НЕТ ГРУЗА — НУЖНА ЦЕПОЧКА', PAL.amber, 13);
+    else addFloat(s.x, s.y-56, 'ВСЁ В ПОРЯДКЕ', PAL.muted, 13);
+  }
+}
+
+/* ---------- ввод ---------- */
+cv.addEventListener('pointerdown', e => {
+  if (mode !== 'play' && mode !== 'play2' && mode !== 'play3') return;
+  audioInit();
+  const sx = e.clientX, sy = e.clientY;
+  let picked = null, best = 1e9;
+  for (const z of ZONES){
+    if (!z.on) continue;
+    const s = worldToScreen(z.gx, z.gy);
+    const dd = Math.hypot(sx - s.x, sy - (s.y - 34*camScale));
+    if (dd < 80*camScale && dd < best){ best = dd; picked = z; }
+  }
+  /* клик по грузовику = клик по доку */
+  if (!picked && Z.dock.on){
+    for (const tr of trucks){
+      const tp = truckPos(tr), ts = worldToScreen(tp.gx, tp.gy);
+      if (Math.hypot(sx - ts.x, sy - ts.y) < 46*camScale){ picked = Z.dock; break; }
+    }
+  }
+  if (picked && dir.fixing && dir.fixing.zone === picked) return;
+  dir.fixing = null;
+  if (picked){
+    dir.targetZone = picked;
+    dir.tx = picked.gx + 1.35; dir.ty = picked.gy + 1.35;
+    const s = worldToScreen(picked.gx, picked.gy);
+    puff(s.x, s.y, 4, PAL.azure, 30, -14);
+  } else {
+    const g = screenToGrid(sx, sy);
+    dir.targetZone = null;
+    dir.tx = clamp(g.gx, 0.8, GRID-0.8); dir.ty = clamp(g.gy, 0.8, GRID-0.8);
+  }
+});
+
+const keys = {};
+const normKey = k => k.length === 1 ? k.toLowerCase() : k;
+window.addEventListener('keydown', e => { keys[normKey(e.key)] = true; });
+window.addEventListener('keyup',   e => { keys[normKey(e.key)] = false; });
+function clearKeys(){ for (const k in keys) keys[k] = false; }
+window.addEventListener('blur', clearKeys);
+document.addEventListener('visibilitychange', clearKeys);
+function keyMove(dt){
+  if (mode !== 'play' && mode !== 'play2' && mode !== 'play3') return;
+  let sx = 0, sy = 0;
+  if (keys['ArrowLeft']||keys['a']||keys['ф']) sx -= 1;
+  if (keys['ArrowRight']||keys['d']||keys['в']) sx += 1;
+  if (keys['ArrowUp']||keys['w']||keys['ц']) sy -= 1;
+  if (keys['ArrowDown']||keys['s']||keys['ы']) sy += 1;
+  const moving = sx !== 0 || sy !== 0;
+  if (moving){
+    dir.fixing = null; dir.targetZone = null;
+    const gx = (sx/(TW/2) + sy/(TH/2))/2, gy = (sy/(TH/2) - sx/(TW/2))/2;
+    const L = Math.hypot(gx, gy) || 1;
+    dir.gx = clamp(dir.gx + gx/L * 3.6 * dt, 0.8, GRID-0.8);
+    dir.gy = clamp(dir.gy + gy/L * 3.6 * dt, 0.8, GRID-0.8);
+    dir.tx = dir.gx; dir.ty = dir.gy;
+    dir.step += dt*10;
+  }
+  for (const z of ZONES){
+    if (!z.on) continue;
+    if (Math.hypot(dir.gx - (z.gx+1.35), dir.gy - (z.gy+1.35)) < 0.9){
+      z.lookUntil = gameT + 3;
+      if (!moving && !dir.fixing && (keys[' ']||keys['Enter'])){
+        const act = actionFor(z);
+        if (act) dir.fixing = { zone:z, act, t:0 };
+      }
+      break;
+    }
+  }
+}
+
+/* ---------- отрисовка ---------- */
+function drawIsoBox(sx, sy, w, d, h, top, left, right){
+  const w2 = w*camScale/2, d2 = d*camScale/2, hh = h*camScale;
+  const wy = w2*TH/TW, dy = d2*TH/TW;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - hh);
+  ctx.lineTo(sx + w2, sy - hh + wy);
+  ctx.lineTo(sx + w2 - d2, sy - hh + wy + dy);
+  ctx.lineTo(sx - d2, sy - hh + dy);
+  ctx.closePath(); ctx.fillStyle = top; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx - d2, sy - hh + dy);
+  ctx.lineTo(sx + w2 - d2, sy - hh + wy + dy);
+  ctx.lineTo(sx + w2 - d2, sy + wy + dy);
+  ctx.lineTo(sx - d2, sy + dy);
+  ctx.closePath(); ctx.fillStyle = left; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx + w2 - d2, sy - hh + wy + dy);
+  ctx.lineTo(sx + w2, sy - hh + wy);
+  ctx.lineTo(sx + w2, sy + wy);
+  ctx.lineTo(sx + w2 - d2, sy + wy + dy);
+  ctx.closePath(); ctx.fillStyle = right; ctx.fill();
+}
+function diamond(sx, sy, w, h, fill){
+  ctx.beginPath();
+  ctx.moveTo(sx, sy - h/2); ctx.lineTo(sx + w/2, sy);
+  ctx.lineTo(sx, sy + h/2); ctx.lineTo(sx - w/2, sy);
+  ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+}
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y); ctx.arcTo(x+w, y, x+w, y+h, r); ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r); ctx.arcTo(x, y, x+w, y, r); ctx.closePath();
+}
+function isRoadTile(gx, gy){
+  return (gx >= 14 && gx <= 16 && gy >= 1 && gy <= 16) || (gy >= 8 && gy <= 9 && gx >= 12 && gx <= 16);
+}
+function drawFloor(){
+  for (let gx = 0; gx < GRID; gx++){
+    for (let gy = 0; gy < GRID; gy++){
+      const s = worldToScreen(gx + 0.5, gy + 0.5);
+      const road = isRoadTile(gx, gy);
+      diamond(s.x, s.y, TW*camScale, TH*camScale, road ? PAL.road : ((gx+gy)%2 ? PAL.tileA : PAL.tileB));
+      if (road && gx === 15 && gy % 2 === 0){
+        diamond(s.x, s.y, 10*camScale, 5*camScale, PAL.roadLine); /* разметка */
+      }
+    }
+  }
+  /* ворота вывоза */
+  const g = worldToScreen(15.5, 1.6);
+  drawIsoBox(g.x - 26*camScale, g.y, 10, 10, 34, '#33456e', '#243356', '#1c2947');
+  drawIsoBox(g.x + 26*camScale, g.y, 10, 10, 34, '#33456e', '#243356', '#1c2947');
+  ctx.fillStyle = PAL.azure;
+  ctx.fillRect(g.x - 30*camScale, g.y - 40*camScale, 60*camScale, 5*camScale);
+}
+function gaugeColor(v){ return v < 0.5 ? PAL.good : (v < 0.75 ? PAL.amber : PAL.red); }
+
+function drawGauge(z, s){
+  let v, label = z.gauge;
+  if (z.kind === 'hopper') v = z.value;
+  else if (z.kind === 'dock'){
+    const left = dockDeadlineLeft();
+    v = left === Infinity ? 0 : clamp(1 - left/TRIP_WINDOW, 0, 1);
+  }
+  else v = z.value;
+  const show = z.kind === 'hopper' ? 1 - z.value : (z.kind === 'dock' ? 1 - v : v);
+  const bw = 66*camScale, bh = 9*camScale;
+  const x = s.x - bw/2, y = s.y - 86*camScale;
+  ctx.fillStyle = 'rgba(10,16,30,.85)';
+  roundRect(x-5, y-19*camScale, bw+10, bh+25*camScale, 7); ctx.fill();
+  ctx.fillStyle = PAL.muted; ctx.font = `700 ${10*camScale}px system-ui`;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, s.x, y - 6*camScale);
+  ctx.fillStyle = '#0a101e'; roundRect(x, y, bw, bh, 4); ctx.fill();
+  ctx.fillStyle = gaugeColor(v); roundRect(x, y, bw * clamp(show,0,1), bh, 4); ctx.fill();
+  if (z.sensor){
+    ctx.fillStyle = PAL.cyan; ctx.font = `800 ${8.5*camScale}px system-ui`;
+    ctx.fillText('СЕНСОР', s.x, y + bh + 10*camScale);
+  }
+}
+
+function drawZone(z){
+  if (!z.on) return;
+  const s = worldToScreen(z.gx + 0.5, z.gy + 0.5);
+  const born = z.unlockAt == null ? 1 : clamp((gameT - z.unlockAt)/0.6, 0, 1);
+  const pop = born < 1 ? (1 + Math.sin(born*Math.PI)*0.18) : 1;
+  const vis = zoneVisible(z);
+  const prob = zoneProblem(z);
+  const sc = camScale * pop;
+
+  diamond(s.x, s.y, TW*2.2*sc, TH*2.2*sc, vis ? 'rgba(47,123,246,.10)' : 'rgba(122,134,160,.07)');
+
+  const warn = z.sensor && !prob && (z.kind==='dock' ? dockDeadlineLeft() < 8 : z.value >= 0.7);
+  const showProb = prob && (vis || z.kind !== 'fridge');
+  if (showProb || warn){
+    const pulse = 0.5 + 0.5*Math.sin(gameT*6);
+    ctx.globalAlpha = 0.25 + 0.3*pulse;
+    diamond(s.x, s.y, TW*2.6*sc, TH*2.6*sc, showProb ? PAL.red : PAL.amber);
+    ctx.globalAlpha = 1;
+  }
+
+  const F = vis ? null : PAL.fog;
+  const cs = camScale; camScale = sc;
+  switch (z.kind){
+    case 'machine':
+      drawIsoBox(s.x, s.y, 74, 60, 46, F||'#41598a', F&&PAL.fogDark||'#2c3f68', F&&'#242b3e'||'#1f2f52');
+      drawIsoBox(s.x + 16*sc, s.y - 30*sc, 16, 16, 26, F||'#55719f', F&&PAL.fogDark||'#3b4f78', F&&'#242b3e'||'#2c3d61');
+      if (vis && !z.failed){
+        const g = 0.15 + z.value*0.85;
+        ctx.fillStyle = `rgba(255,${Math.round(176-120*z.value)},60,${0.25+0.55*g})`;
+        ctx.beginPath(); ctx.arc(s.x - 8*sc, s.y - 24*sc, 7*sc, 0, 7); ctx.fill();
+      }
+      break;
+    case 'press':
+      drawIsoBox(s.x, s.y, 60, 54, 30, F||'#3f568c', F&&PAL.fogDark||'#2b3d66', F&&'#242b3e'||'#20304f');
+      drawIsoBox(s.x, s.y - 30*sc, 26, 26, 26 + Math.sin(gameT*4)* (zoneProducing(z)?5:0), F||'#5a76a8', F&&PAL.fogDark||'#41577f', F&&'#242b3e'||'#324565');
+      break;
+    case 'hopper':
+      drawIsoBox(s.x, s.y, 54, 54, 66, F||'#3d5484', F&&PAL.fogDark||'#293c63', F&&'#242b3e'||'#1e2e50');
+      if (vis){
+        const lvl = 1 - z.value;
+        ctx.fillStyle = PAL.cyan; ctx.globalAlpha = .8;
+        ctx.fillRect(s.x - 12*sc, s.y - (18 + 34*lvl)*sc, 6*sc, 34*lvl*sc);
+        ctx.globalAlpha = 1;
+      }
+      break;
+    case 'worker':
+      drawIsoBox(s.x, s.y, 66, 40, 22, F||'#3a4f7d', F&&PAL.fogDark||'#27395e', F&&'#242b3e'||'#1d2c4c');
+      ctx.fillStyle = F||'#e8c9a0';
+      ctx.beginPath(); ctx.arc(s.x - 6*sc, s.y - 34*sc, 7*sc, 0, 7); ctx.fill();
+      ctx.fillStyle = F||PAL.azure;
+      roundRect(s.x - 13*sc, s.y - 28*sc, 14*sc, 14*sc, 4*sc); ctx.fill();
+      break;
+    case 'fridge':
+      drawIsoBox(s.x, s.y, 78, 62, 52, F||'#9fb6d8', F&&PAL.fogDark||'#6d84ab', F&&'#242b3e'||'#54688c');
+      if (vis){
+        const spoil = clamp((z.value - 0.55)/0.45, 0, 1);
+        for (let i = 0; i < 3; i++){
+          ctx.fillStyle = `rgb(${Math.round(80+140*spoil)},${Math.round(200-120*spoil)},${Math.round(110-60*spoil)})`;
+          roundRect(s.x - 20*sc + i*14*sc, s.y - 12*sc + i*4*sc, 11*sc, 9*sc, 2*sc); ctx.fill();
+        }
+      }
+      break;
+    case 'power':
+      drawIsoBox(s.x, s.y, 50, 44, 58, F||(powerOut?'#5a3440':'#44598e'), F&&PAL.fogDark||'#2e4069', F&&'#242b3e'||'#223252');
+      /* молния */
+      ctx.fillStyle = powerOut ? PAL.red : (F ? PAL.fog : PAL.gold);
+      ctx.beginPath();
+      ctx.moveTo(s.x - 2*sc, s.y - 52*sc); ctx.lineTo(s.x + 8*sc, s.y - 52*sc);
+      ctx.lineTo(s.x + 1*sc, s.y - 38*sc); ctx.lineTo(s.x + 7*sc, s.y - 38*sc);
+      ctx.lineTo(s.x - 6*sc, s.y - 20*sc); ctx.lineTo(s.x - 1*sc, s.y - 34*sc);
+      ctx.lineTo(s.x - 7*sc, s.y - 34*sc); ctx.closePath(); ctx.fill();
+      break;
+    case 'dock':
+      drawIsoBox(s.x, s.y, 88, 56, 18, F||'#3c527f', F&&PAL.fogDark||'#293a5e', F&&'#242b3e'||'#1f2e4d');
+      for (let i = 0; i < Math.min(4, Math.floor(stock/TRIP_STOCK)+1); i++){
+        drawIsoBox(s.x - 22*sc + i*13*sc, s.y - 18*sc + (i%2)*5*sc, 11, 11, 10, F||'#c9a15e', F&&PAL.fogDark||'#8f7241', F&&'#242b3e'||'#6e5730');
+      }
+      if (vis){
+        ctx.fillStyle = 'rgba(10,16,30,.85)';
+        roundRect(s.x - 40*camScale, s.y + 6*camScale, 80*camScale, 16*camScale, 6); ctx.fill();
+        ctx.fillStyle = stock >= TRIP_STOCK ? PAL.good : PAL.amber;
+        ctx.font = `800 ${10*camScale}px system-ui`; ctx.textAlign = 'center';
+        ctx.fillText('ГРУЗ: ' + Math.floor(stock) + '/' + TRIP_STOCK, s.x, s.y + 17*camScale);
+      }
+      break;
+  }
+  camScale = cs;
+
+  if (!vis){
+    ctx.fillStyle = 'rgba(160,170,195,.10)';
+    for (let i = 0; i < 5; i++)
+      ctx.fillRect(s.x + (Math.random()-.5)*90*sc, s.y - 20*sc + (Math.random()-.5)*60*sc, 2.5, 2.5);
+    ctx.fillStyle = PAL.muted; ctx.font = `800 ${22*camScale}px system-ui`; ctx.textAlign = 'center';
+    ctx.fillText('?', s.x, s.y - 66*camScale + Math.sin(gameT*2 + z.gx)*3);
+  } else {
+    drawGauge(z, s);
+  }
+
+  if (showProb){
+    const by = s.y - 112*camScale + Math.sin(gameT*7)*3;
+    ctx.fillStyle = PAL.red;
+    const bw = (44 + prob.length*5)*camScale;
+    roundRect(s.x - bw/2, by - 14*camScale, bw, 20*camScale, 10*camScale); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `800 ${11*camScale}px system-ui`; ctx.textAlign = 'center';
+    ctx.fillText('! ' + prob, s.x, by);
+  }
+
+  ctx.fillStyle = 'rgba(220,235,255,.55)'; ctx.font = `700 ${10.5*camScale}px system-ui`;
+  ctx.textAlign = 'center';
+  ctx.fillText(z.name, s.x, s.y + 34*camScale);
+}
+
+function drawTrucks(){
+  if (!Z.dock.on) return;
+  for (const tr of trucks){
+    const p = truckPos(tr), s = worldToScreen(p.gx, p.gy);
+    drawIsoBox(s.x, s.y, 30, 16, 14, '#c6d6ef', '#93a7c8', '#7488a8');           /* кузов */
+    drawIsoBox(s.x + 12*camScale, s.y + 3*camScale, 12, 14, 10, PAL.azure, '#2456b8', '#1c449a'); /* кабина */
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.ellipse(s.x, s.y + 7*camScale, 20*camScale, 6*camScale, 0, 0, 7); ctx.fill();
+    /* статус */
+    if (tr.phase === 'ready'){
+      const left = tr.deadline - gameT;
+      const c = left < 6 ? PAL.red : (left < 10 ? PAL.amber : PAL.good);
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(s.x, s.y - 24*camScale + Math.sin(gameT*6)*2, 5*camScale, 0, 7); ctx.fill();
+      if (Z.dock.sensor || zoneVisible(Z.dock)){
+        ctx.fillStyle = 'rgba(10,16,30,.85)';
+        roundRect(s.x - 24*camScale, s.y - 62*camScale, 48*camScale, 15*camScale, 6); ctx.fill();
+        ctx.fillStyle = c; ctx.font = `800 ${10*camScale}px system-ui`; ctx.textAlign='center';
+        ctx.fillText(Math.max(0, Math.ceil(left)) + ' с', s.x, s.y - 51*camScale);
+      }
+    }
+  }
+}
+
+/* кабели логики: зона → щит */
+function cablePts(zoneId){
+  const z = Z[zoneId];
+  const a = worldToScreen(z.gx + 0.5, z.gy + 0.5);
+  const b = worldToScreen(HUB.gx, HUB.gy);
+  const mx = (a.x + b.x)/2, my = Math.min(a.y, b.y) - 60*camScale;
+  return { a, b, mx, my };
+}
+function qPoint(a, cx, cy, b, t){
+  const mt = 1-t;
+  return { x: mt*mt*a.x + 2*mt*t*cx + t*t*b.x, y: mt*mt*a.y + 2*mt*t*cy + t*t*b.y };
+}
+function drawLogic(){
+  if (mode !== 'play3') return;
+  /* щит логики */
+  const h = worldToScreen(HUB.gx, HUB.gy);
+  drawIsoBox(h.x, h.y, 40, 34, 40, '#1e3c6e', '#16294d', '#122241');
+  ctx.strokeStyle = PAL.cyan; ctx.lineWidth = 2*camScale;
+  ctx.strokeRect(h.x - 9*camScale, h.y - 34*camScale, 18*camScale, 14*camScale);
+  ctx.fillStyle = PAL.cyan; ctx.font = `800 ${9.5*camScale}px system-ui`; ctx.textAlign = 'center';
+  ctx.fillText('ЩИТ ЛОГИКИ', h.x, h.y + 30*camScale);
+  const pulseG = 0.5 + 0.5*Math.sin(gameT*3);
+  ctx.globalAlpha = 0.2 + 0.25*pulseG;
+  diamond(h.x, h.y, TW*1.8*camScale, TH*1.8*camScale, PAL.cyan);
+  ctx.globalAlpha = 1;
+  /* кабели */
+  for (const r of RULES){
+    if (!r.active || !Z[r.zone].on) continue;
+    const { a, b, mx, my } = cablePts(r.zone);
+    ctx.strokeStyle = 'rgba(53,214,232,.5)';
+    ctx.lineWidth = 2.4*camScale;
+    ctx.setLineDash([8, 7]);
+    ctx.lineDashOffset = -gameT*30;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y - 20*camScale);
+    ctx.quadraticCurveTo(mx, my, b.x, b.y - 20*camScale); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  /* импульсы: щит → зона */
+  for (const pl of pulses){
+    const { a, b, mx, my } = cablePts(pl.zone);
+    const q = qPoint({x:b.x, y:b.y-20*camScale}, mx, my, {x:a.x, y:a.y-20*camScale}, clamp(pl.t,0,1));
+    ctx.fillStyle = PAL.cyan;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 6*camScale, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(53,214,232,.35)';
+    ctx.beginPath(); ctx.arc(q.x, q.y, 11*camScale, 0, 7); ctx.fill();
+  }
+}
+
+function drawDirector(){
+  const s = worldToScreen(dir.gx, dir.gy);
+  const bob = Math.abs(Math.sin(dir.step))* (dir.fixing ? 2 : 4) * camScale;
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.beginPath(); ctx.ellipse(s.x, s.y + 4*camScale, 13*camScale, 5*camScale, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#22335c';
+  roundRect(s.x - 7*camScale, s.y - 26*camScale - bob, 14*camScale, 20*camScale, 5*camScale); ctx.fill();
+  ctx.fillStyle = '#e8c9a0';
+  ctx.beginPath(); ctx.arc(s.x, s.y - 32*camScale - bob, 7*camScale, 0, 7); ctx.fill();
+  ctx.fillStyle = PAL.gold;
+  ctx.beginPath(); ctx.arc(s.x, s.y - 36*camScale - bob, 7.4*camScale, Math.PI, 0); ctx.fill();
+  ctx.fillRect(s.x - 9*camScale, s.y - 37*camScale - bob, 18*camScale, 2.5*camScale);
+  if (dir.fixing){
+    const f = dir.fixing, p = clamp(f.t / f.act.dur, 0, 1);
+    ctx.strokeStyle = 'rgba(220,235,255,.25)'; ctx.lineWidth = 5*camScale;
+    ctx.beginPath(); ctx.arc(s.x, s.y - 58*camScale, 16*camScale, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = PAL.cyan;
+    ctx.beginPath(); ctx.arc(s.x, s.y - 58*camScale, 16*camScale, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); ctx.stroke();
+    ctx.fillStyle = PAL.ice; ctx.font = `800 ${11*camScale}px system-ui`; ctx.textAlign = 'center';
+    ctx.fillText(f.act.label, s.x, s.y - 84*camScale);
+    if ((mode === 'play' || mode === 'play2' || mode === 'play3') && Math.random() < 0.3)
+      parts.push({ t:'dust', x:s.x+(Math.random()-.5)*20, y:s.y-30*camScale, vx:(Math.random()-.5)*60, vy:-40*Math.random(), life:.35, size:2.5, color:PAL.cyan });
+  }
+}
+
+let moneyPulse = 0;
+function drawHUD(dtReal){
+  const pc = problemCount();
+  moneyPulse = Math.max(0, moneyPulse - dtReal*3);
+  const msz = 26 + moneyPulse*6;
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(10,16,30,.8)';
+  roundRect(W/2 - 130, 12, 260, 46, 14); ctx.fill();
+  ctx.fillStyle = comboMult > 1 ? PAL.gold : PAL.ice;
+  ctx.font = `800 ${msz}px system-ui`;
+  ctx.fillText(fmtMoney(money), W/2, 45);
+  if (comboMult > 1){
+    ctx.fillStyle = PAL.gold; ctx.font = '800 13px system-ui';
+    ctx.fillText('СЕРИЯ ×' + comboMult.toFixed(1), W/2, 70);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(10,16,30,.8)'; roundRect(16, 12, 210, 40, 12); ctx.fill();
+  ctx.fillStyle = PAL.muted; ctx.font = '700 12px system-ui';
+  const phaseName = mode === 'play3' ? 'СМЕНА · С ЛОГИКОЙ' : (mode === 'play2' ? 'СМЕНА · С ДАТЧИКАМИ' : 'СМЕНА · ВРУЧНУЮ');
+  ctx.fillText(phaseName, 28, 28);
+  ctx.fillStyle = PAL.ice; ctx.font = '800 17px system-ui';
+  ctx.fillText(fmtTime(actLen() - phaseT), 28, 46);
+  ctx.textAlign = 'right';
+  const rw = Math.min(270, W*0.34);
+  ctx.fillStyle = 'rgba(10,16,30,.8)'; roundRect(W-16-rw, 12, rw, 40, 12); ctx.fill();
+  ctx.fillStyle = PAL.muted; ctx.font = '700 12px system-ui';
+  ctx.fillText('АВАРИЙ · РЕЙСОВ ВОВРЕМЯ', W-28, 28);
+  ctx.fillStyle = accidents ? PAL.red : PAL.good; ctx.font = '800 17px system-ui';
+  ctx.fillText(accidents + '  ·  ' + tripsOnTime + '/' + (tripsOnTime + tripsLate), W-28, 46);
+  const jit = pc ? Math.sin(gameT*40)*pc*1.4 : 0;
+  ctx.save();
+  ctx.translate(40, H-56); ctx.rotate(jit*0.03);
+  ctx.fillStyle = '#1a2745'; roundRect(-14, -24, 28, 48, 8); ctx.fill();
+  ctx.fillStyle = pc ? PAL.red : '#2c3d61'; roundRect(-10, -19, 20, 32, 4); ctx.fill();
+  ctx.restore();
+  if (pc){
+    ctx.fillStyle = PAL.red;
+    ctx.beginPath(); ctx.arc(58, H-76, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '800 12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(String(pc), 58, H-72);
+  }
+}
+
+const DASH_SHORT = { machine:'СТАНОК', hopper:'БУНКЕР', dock:'ДОК', press:'ПРЕСС', worker:'СБОРКА', fridge:'СКЛАД', power:'ЭНЕРГО' };
+function drawDashboard(){
+  const rows = ZONES.filter(z => z.on);
+  if (!rows.length) return;
+  const x = 16, y = 64, w = 216, rh = 19;
+  const h = 38 + (rows.length + 2) * rh;
+  ctx.fillStyle = 'rgba(10,16,30,.72)';
+  roundRect(x, y, w, h, 12); ctx.fill();
+  ctx.strokeStyle = 'rgba(220,235,255,.07)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.textAlign = 'left';
+  ctx.fillStyle = PAL.muted; ctx.font = '800 10px system-ui';
+  ctx.fillText('ДИСПЕТЧЕРСКАЯ', x+12, y+18);
+  const blind = !ZONES.some(z => z.sensor);
+  if (blind && Math.sin(gameT*3) > 0){
+    ctx.fillStyle = PAL.red; ctx.textAlign = 'right';
+    ctx.fillText('СЛЕПАЯ ЗОНА', x+w-12, y+18);
+    ctx.textAlign = 'left';
+  }
+  let ry = y + 28;
+  for (const z of rows){
+    ctx.fillStyle = PAL.muted; ctx.font = '700 10px system-ui';
+    ctx.fillText(DASH_SHORT[z.id] || z.id, x+12, ry+12);
+    if (z.sensor){
+      const prob = zoneProblem(z);
+      let v = z.kind==='dock'
+        ? (dockDeadlineLeft()===Infinity ? 0 : clamp(1 - dockDeadlineLeft()/TRIP_WINDOW, 0, 1))
+        : z.value;
+      const fill = z.kind==='hopper' ? 1 - z.value : (z.kind==='dock' ? 1 - v : v);
+      ctx.fillStyle = '#0a101e'; roundRect(x+72, ry+3, 64, 8, 4); ctx.fill();
+      ctx.fillStyle = prob ? PAL.red : gaugeColor(v);
+      roundRect(x+72, ry+3, 64*clamp(fill, 0.03, 1), 8, 4); ctx.fill();
+      const rule = RULES.find(r => r.zone === z.id && r.active);
+      if (rule && mode === 'play3'){
+        const flash = gameT - (rule.lastFire || -9) < 0.6;
+        ctx.fillStyle = flash ? PAL.ice : PAL.cyan; ctx.font = '800 8.5px system-ui';
+        ctx.fillText('АВТО', x+144, ry+11);
+      }
+      if (prob){ ctx.fillStyle = PAL.red; ctx.font = '800 10px system-ui'; ctx.textAlign = 'right'; ctx.fillText('!', x+w-12, ry+12); ctx.textAlign = 'left'; }
+    } else {
+      ctx.fillStyle = 'rgba(126,141,176,.5)'; ctx.font = '700 9px system-ui';
+      ctx.fillText('НЕТ ДАННЫХ', x+72, ry+12);
+    }
+    ry += rh;
+  }
+  ctx.fillStyle = PAL.muted; ctx.font = '700 10px system-ui';
+  ctx.fillText('ГРУЗ', x+12, ry+12);
+  ctx.fillStyle = stock >= TRIP_STOCK ? PAL.good : PAL.amber; ctx.font = '800 10px system-ui';
+  ctx.fillText(Math.floor(stock) + ' / ' + TRIP_STOCK, x+72, ry+12);
+  ry += rh;
+  ctx.fillStyle = PAL.muted; ctx.font = '700 10px system-ui';
+  ctx.fillText('РЕЙСЫ', x+12, ry+12);
+  ctx.fillStyle = PAL.ice; ctx.font = '800 10px system-ui';
+  ctx.fillText(tripsOnTime + ' / ' + (tripsOnTime + tripsLate), x+72, ry+12);
+}
+
+function drawParticles(){
+  if (parts.length > 800) parts.splice(0, parts.length - 800);
+  for (const p of parts){
+    if (p.t === 'coin'){
+      if (p.p < 0) continue;
+      ctx.fillStyle = PAL.gold;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.beginPath(); ctx.arc(p.x-1.5, p.y-1.5, 1.6, 0, 7); ctx.fill();
+      continue;
+    }
+    ctx.globalAlpha = clamp(p.life, 0, 1);
+    if (p.t === 'zzz'){
+      ctx.fillStyle = p.color; ctx.font = `800 ${p.size}px system-ui`; ctx.textAlign = 'center';
+      ctx.fillText('z', p.x, p.y);
+    } else {
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (const f of floats){
+    ctx.globalAlpha = clamp(f.life, 0, 1);
+    ctx.fillStyle = f.color; ctx.font = `800 ${f.size}px system-ui`; ctx.textAlign = 'center';
+    ctx.fillText(f.txt, f.x, f.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function render(dtReal){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = PAL.bg; ctx.fillRect(0, 0, W, H);
+  if (shake > 0) ctx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
+  drawFloor();
+  drawLogic();
+  let dirDrawn = false;
+  for (const z of ZONES_ORDERED){
+    if (!dirDrawn && (dir.gx + dir.gy) < (z.gx + z.gy)){ drawDirector(); dirDrawn = true; }
+    drawZone(z);
+  }
+  if (!dirDrawn) drawDirector();
+  drawTrucks();
+  if (powerOut){
+    ctx.fillStyle = `rgba(255,90,78,${0.05 + 0.04*Math.sin(gameT*8)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  drawParticles();
+  drawHUD(dtReal);
+  drawDashboard();
+  drawQuip();
+}
+
+/* ---------- оверлеи и поток фаз ---------- */
+const $ = id => document.getElementById(id);
+const selSensors = new Set();
+const SENSOR_BUDGET = 3;
+
+function openSupply(){
+  mode = 'supply'; supplyLeft = SUPPLY_LEN;
+  dir.fixing = null; dir.targetZone = null; selSensors.clear();
+  const box = $('sensorCards'); box.innerHTML = '';
+  for (const z of ZONES){
+    if (!z.sensorName) continue;
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = `<div class="cn">${z.sensorName}</div><div class="cd">${z.sensorDesc}</div><div class="cz">Зона: ${z.name}</div>`;
+    c.onclick = () => {
+      if (selSensors.has(z.id)) selSensors.delete(z.id);
+      else if (selSensors.size < SENSOR_BUDGET) selSensors.add(z.id);
+      c.classList.toggle('sel', selSensors.has(z.id));
+      $('mountBtn').textContent = `СМОНТИРОВАТЬ (${selSensors.size}/${SENSOR_BUDGET})`;
+      $('mountBtn').disabled = selSensors.size !== SENSOR_BUDGET;
+      beep(720, .05, 'triangle', .25);
+    };
+    box.appendChild(c);
+  }
+  $('mountBtn').textContent = `СМОНТИРОВАТЬ (0/${SENSOR_BUDGET})`;
+  $('mountBtn').disabled = true;
+  $('supply').classList.remove('hidden');
+}
+function mountSensors(){
+  for (const id of ['machine','power','dock','fridge','hopper']){
+    if (selSensors.size >= SENSOR_BUDGET) break;
+    selSensors.add(id);
+  }
+  for (const id of selSensors){ Z[id].sensor = true; }
+  $('supply').classList.add('hidden');
+  mode = 'play2'; phaseT = 0;
+  for (const z of ZONES){
+    z.on = true; if (z.unlockAt == null) z.unlockAt = gameT;
+    z.failed = false; z.value = Math.min(z.value, 0.4);
+  }
+  powerOut = false;
+  for (const tr of trucks){ if (tr.deadline < gameT) tr.deadline = gameT + TRIP_WINDOW + tr.id*8; }
+  hint('Смотри: беды теперь видны заранее!');
+  say('ДИСПЕТЧЕРСКАЯ', 'Панель ожила — вижу данные!');
+  sUnlock();
+}
+$('mountBtn').onclick = mountSensors;
+
+const selRules = new Set();
+const RULE_BUDGET = 3;
+function openRules(){
+  mode = 'rules'; rulesLeft = RULES_LEN;
+  dir.fixing = null; dir.targetZone = null; selRules.clear();
+  const box = $('ruleRows'); box.innerHTML = '';
+  const avail = RULES.filter(r => Z[r.zone].sensor);
+  for (const r of avail){
+    const row = document.createElement('div');
+    row.className = 'rrow';
+    row.innerHTML = `<div class="rif">ЕСЛИ ${r.ifTxt}</div><div class="rwire"></div><div class="rthen">ТО ${r.thenTxt}</div>`;
+    row.onclick = () => {
+      if (selRules.has(r.id)) selRules.delete(r.id);
+      else if (selRules.size < RULE_BUDGET) selRules.add(r.id);
+      row.classList.toggle('sel', selRules.has(r.id));
+      $('wireBtn').textContent = `ЗАПУСТИТЬ ЛОГИКУ (${selRules.size})`;
+      beep(900, .05, 'triangle', .25);
+    };
+    box.appendChild(row);
+  }
+  if (!avail.length){
+    const d = document.createElement('div');
+    d.className = 'small';
+    d.textContent = 'Без датчиков соединять нечего — логика строится на данных.';
+    box.appendChild(d);
+  }
+  $('wireBtn').textContent = 'ЗАПУСТИТЬ ЛОГИКУ (0)';
+  $('rules').classList.remove('hidden');
+}
+function wireRules(){
+  if (!selRules.size){
+    for (const r of RULES){ if (Z[r.zone].sensor && selRules.size < RULE_BUDGET) selRules.add(r.id); }
+  }
+  for (const r of RULES){ r.active = selRules.has(r.id); r.cd = 0; }
+  $('rules').classList.add('hidden');
+  mode = 'play3'; phaseT = 0;
+  for (const z of ZONES){ z.failed = false; z.value = Math.min(z.value, 0.4); }
+  powerOut = false;
+  for (const tr of trucks){ if (tr.deadline < gameT) tr.deadline = gameT + TRIP_WINDOW + tr.id*8; }
+  hint('Завод играет сам — смотри!');
+  say('ЩИТ ЛОГИКИ', 'Логика в работе. Наблюдайте.');
+  sUnlock();
+}
+$('wireBtn').onclick = wireRules;
+
+function endGame(){
+  mode = 'end';
+  dir.fixing = null; dir.targetZone = null;
+  const pct = p => Math.round(100 * stat[p].lost / Math.max(1, stat[p].lost + stat[p].earned));
+  const p1 = pct(1), p2 = pct(2), p3 = pct(3);
+  $('endTitle').textContent = p3 < p1 ? 'Логика окупилась' : 'Хаос силён — попробуй ещё';
+  $('endStats').innerHTML = `
+    <div class="srow"><span>Акт 1 · вручную — потери</span><b class="lose">${fmtMoney(stat[1].lost)} · ${p1}%</b></div>
+    <div class="srow"><span>Акт 2 · с датчиками — потери</span><b>${fmtMoney(stat[2].lost)} · ${p2}%</b></div>
+    <div class="srow"><span>Акт 3 · с логикой — потери</span><b class="win">${fmtMoney(stat[3].lost)} · ${p3}%</b></div>
+    <div class="srow"><span>Рейсы вовремя / всего</span><b>${tripsOnTime} / ${tripsOnTime + tripsLate}</b></div>
+    <div class="srow"><span>Предотвращено · автоматикой</span><b class="win">${prevented} · ${autoActs}</b></div>
+    <div class="srow"><span>Касса смены</span><b>${fmtMoney(money)}</b></div>`;
+  $('end').classList.remove('hidden');
+}
+function resetGame(){
+  money = 500; comboMult = 1; comboN = 0; comboUntil = 0;
+  accidents = 0; prevented = 0; autoActs = 0;
+  stock = 30; tripsOnTime = 0; tripsLate = 0; powerOut = false;
+  stat[1] = { earned:0, lost:0 }; stat[2] = { earned:0, lost:0 }; stat[3] = { earned:0, lost:0 };
+  parts.length = 0; floats.length = 0; pulses.length = 0;
+  for (const z of ZONES){
+    z.on = false; z.unlockAt = null; z.failed = false; z.sensor = false;
+    z.value = 0; z.lookUntil = 0; z.warned = false;
+  }
+  for (const tr of trucks){ tr.phase='load'; tr.t = LOAD_TIME + tr.id*8; tr.p = 0; tr.deadline = 0; tr.delivered = false; }
+  RULES.forEach(r => { r.active = false; r.cd = 0; r.lastFire = -9; });
+  quips.length = 0; quipCur = null; quipIdle = 0;
+  selSensors.clear(); selRules.clear();
+  Object.keys(hintedOnce).forEach(k => delete hintedOnce[k]);
+  dir.gx = 8; dir.gy = 9.5; dir.tx = 8; dir.ty = 9.5; dir.targetZone = null; dir.fixing = null;
+  phaseT = 0; coinAcc = 0; alarmAcc = 0;
+}
+$('startBtn').onclick = () => {
+  audioInit();
+  $('title').classList.add('hidden');
+  resetGame(); mode = 'play';
+  hint('Кликай по зонам — успевай везде!');
+};
+$('againBtn').onclick = () => {
+  $('end').classList.add('hidden');
+  resetGame(); mode = 'play';
+};
+
+/* ---------- главный цикл ---------- */
+let last = performance.now();
+let idleFrames = 0;
+function tick(now){
+  let dtReal = Math.min(0.1, Math.max(0, (now - last)/1000)); last = now;
+  if (mode === 'title' || mode === 'end'){
+    if (idleFrames++ <= 4) render(dtReal);
+    return;
+  }
+  if (mode === 'supply'){
+    supplyLeft -= dtReal;
+    $('supplyTimer').textContent = 'Автомонтаж через ' + Math.max(0, Math.ceil(supplyLeft)) + ' с';
+    if (supplyLeft <= 0) mountSensors();
+    if (idleFrames++ <= 4) render(dtReal);
+    return;
+  }
+  if (mode === 'rules'){
+    rulesLeft -= dtReal;
+    $('rulesTimer').textContent = 'Автозапуск через ' + Math.max(0, Math.ceil(rulesLeft)) + ' с';
+    if (rulesLeft <= 0) wireRules();
+    if (idleFrames++ <= 4) render(dtReal);
+    return;
+  }
+  idleFrames = 0;
+  let dt = dtReal;
+  if (hitstop > 0){ hitstop -= dtReal; dt = dtReal * 0.12; }
+  keyMove(dt);
+  update(dt);
+  render(dtReal);
+}
+function frame(now){
+  requestAnimationFrame(frame);
+  tick(now);
+}
+setInterval(() => {
+  const now = performance.now();
+  if (now - last > 300) tick(now);
+}, 250);
+resize();
+requestAnimationFrame(frame);
+
+/* сервисный хук стенда */
+window.__RR = {
+  skipToSupply(){ if (mode === 'play') phaseT = ACT1_LEN; },
+  skipToRules(){ if (mode === 'play2') phaseT = ACT2_LEN; },
+  skipToEnd(){ if (mode === 'play3') phaseT = ACT3_LEN; },
+  state(){ return { mode, t: Math.round(phaseT), money: Math.round(money), accidents, prevented, autoActs,
+    stock: Math.round(stock), trips: tripsOnTime + '/' + (tripsOnTime + tripsLate), powerOut,
+    rules: RULES.filter(r => r.active).map(r => r.id),
+    zones: ZONES.map(z => ({ id:z.id, on:z.on, v:+z.value.toFixed(2), failed:z.failed, sensor:z.sensor })) }; }
+};
+})();
+</script>
+</body>
+</html>

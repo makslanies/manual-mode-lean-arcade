@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.github
+.voly
+*.log
+.env
+.env.*
+!.env.example
+coverage
+.pytest_cache
+docs
+tests
+README.md
+AGENT_TASK.txt
+PIPELINE_PROMPT.txt
+tsconfig.tsbuildinfo
